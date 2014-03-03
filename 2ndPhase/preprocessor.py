@@ -1,16 +1,14 @@
-__author__ = 'Primal Pappachan'
-#coding: utf8
+#!/usr/bin/python
 
 """
-Pre-Processor
+calcwts
 
 Homework 2: http://www.csee.umbc.edu/~nicholas/676/term%20project/hw2.html
 
 Author: Primal Pappachan, primal1@umbc.edu
 
 """
-
-import nltk, unicodedata
+import nltk, unicodedata, HTMLParser
 import os, sys, re
 import collections
 import random, math
@@ -53,11 +51,13 @@ def clean_html(filename):
         It removes the html markup, formatting as well as non alphanumeric characters.
         Return string. 
     """
+    html_parser = HTMLParser.HTMLParser()
     f = open(filename)
     raw = f.read()
     cleaned = nltk.clean_html(raw)     
     cleaned = cleaned.decode('utf8', 'ignore')
-    cleaned = unicodedata.normalize('NFKD', cleaned).encode('ascii', 'ignore')
+    cleaned = html_parser.unescape(cleaned)
+    cleaned = unicodedata.normalize('NFKD', cleaned).encode('latin-1','ignore')
     return cleaned
 
 def tokenizer(cleaned):
@@ -65,30 +65,27 @@ def tokenizer(cleaned):
         Converts cleaned text to a vocabulary.
         Returns dictionary.
     """
-    text = nltk.word_tokenize(cleaned)
-    words = [w.lower() for w in text]
-    #Stopwords check and deletion
-    stopwords = open('stoplist.txt').read().splitlines()
-    words = [word for word in words if word not in stopwords]
+    tokenizer = nltk.tokenize.RegexpTokenizer("[\w’]+", flags=re.UNICODE)
+    text = tokenizer.tokenize(cleaned)
+    words = [w.lower() for w in text if len(w) > 2]
+    #Stopwords removal
+    stopwords = open('stoplist.txt').read().splitlines() #from file
+    # try:
+    #     stopwords.extend(nltk.corpus.stopwords.words('english')) #from nltk corpus
+    # except Exception:
+    #     pass   
+    words = [word for word in words if word not in stopwords]    
+    return words
 
-    new_vocab = []
-    for word in words:
-        if re.search(r'^\d+\.\d+', word) or not re.search(r'^\W+$', word) or re.search(r'^\w+', word):
-            new_vocab.append(word)
-    
-    return new_vocab
-
-def write_to_file(model, filename, output_path):
+def write_to_file(output, filename, output_path):
     """
-        Writes vocabulary into an output file.
+        Writes into an output file.
     """
-    directory = output_path + token_dir
-    if not os.path.exists(directory):
-        os.makedirs(directory)
-    outfile = directory + filename[-8:-5] + '.txt'
-    for (word, freq) in vocab.iteritems():
-        with open(outfile, "a") as f:
-            f.write('%s  %s \n' % (word, freq))
+    if not os.path.exists(output_path):
+        os.makedirs(output_path)
+    outfile = output_path + filename[-8:-5] + '.txt'
+    with open(outfile, "w") as f:
+        f.write(output)
     return
 
 if __name__ == "__main__":
@@ -101,7 +98,7 @@ if __name__ == "__main__":
     
     except:
         print "Missing Parameters"
-        print "Usage: python tokenize.py files out_files <n>"
+        print "Usage: python preprocessor.py files out_files <n>"
         print "<n> - Number of files, n = [1, 503]"
         sys.exit(1)    
         
@@ -112,12 +109,17 @@ if __name__ == "__main__":
     #random.shuffle(list_of_files) #Randomizing the order of files in the list
     
     model = collections.defaultdict(dict) #document : term : frequency
-    for i in xrange(0, number_of_files): # Slicing the list of files as per Number of files
+    for i in range(0, number_of_files): # Slicing the list of files as per Number of files
         filename = list_of_files[i]
         cleaned = clean_html(filename) #cleaning raw html string
         tokens = tokenizer(cleaned) #tokenization
         for token in tokens:
             model[filename][token] = freq(token, tokens)
 
-    print tf_idf(model, 'mexican', '../input_files/001.html')        
+    for i in range(0, number_of_files):
+        doc = list_of_files[i]
+        output = ""
+        for word in model[doc].keys():
+            output += "%s \t %s \n" %(word, tf_idf(model, word, doc))
+        write_to_file(output, doc, output_path)     
         
