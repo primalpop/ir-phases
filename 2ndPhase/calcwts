@@ -24,7 +24,6 @@ def idf(N, word, vocabulary):
         N - Total number of documents
         vocabulary - Complete list of tokens
     """
-    #import ipdb; ipdb.set_trace()
     return math.log(N / float(freq(word, vocabulary)))
 
 def tf_idf(model, word, doc):
@@ -42,8 +41,21 @@ def tf_idf(model, word, doc):
     idf_value = idf(N, word, vocabulary) 
     return tf_value * idf_value 
 
-def bm_25():
-    pass                 
+def bm25_ranking(model, word, doc):
+    """
+        Calculates BM25 with K1 = 1 and S1 = K1 + 1
+        TODO: Test the results
+    """
+    k1 = 1
+    s1 = k1 + 1
+    avg_doclen = 0
+    freq = model[doc][word]
+    doclen = sum(model[doc].values()) #length of document
+    N = len(model.keys())
+    for d in model.keys():
+        avg_doclen += sum(model[d].values())
+    avg_doclen = avg_doclen / float (N) #average document length
+    return s1 * (freq / ( ( (k1 * doclen ) / avg_doclen ) + freq ))                 
 
 def clean_html(filename):
     """
@@ -70,10 +82,10 @@ def tokenizer(cleaned):
     words = [w.lower() for w in text if len(w) > 2]
     #Stopwords removal
     stopwords = open('stoplist.txt').read().splitlines() #from file
-    # try:
-    #     stopwords.extend(nltk.corpus.stopwords.words('english')) #from nltk corpus
-    # except Exception:
-    #     pass   
+    try:
+        stopwords.extend(nltk.corpus.stopwords.words('english')) #from nltk corpus
+    except Exception:
+        pass   
     words = [word for word in words if word not in stopwords]    
     return words
 
