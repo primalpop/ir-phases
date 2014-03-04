@@ -34,7 +34,7 @@ class Calcwts:
         """ Computes Inverse Document frequency """
         return math.log(self.total_docs / float(self.inverse_doc_freq[word]))
 
-    @profile    
+    #@profile    
     def tf_idf(self, word, doc, doclen):
         #import ipdb; ipdb.set_trace()
         term_freq = self.model[doc][word]
@@ -42,12 +42,11 @@ class Calcwts:
         idf_value = self.idf(word)
         return tf_value * idf_value
 
-    def bm25_ranking(self, word, doc):
+    def bm25_ranking(self, word, doc, doclen):
         """ Calculates BM25 with K1 = 1 and S1 = K1 + 1 """
         k1 = 1
         s1 = k1 + 1
         freq = self.model[doc][word]
-        doclen = sum(self.model[doc].values()) #length of document
         return s1 * (freq / ( ( (k1 * doclen ) / self.avg_doclen ) + freq ))
 
 class Tokenization:
@@ -55,6 +54,7 @@ class Tokenization:
     def __init__(self):
         self.html_parser = HTMLParser.HTMLParser()
         self.tokenizer = nltk.tokenize.RegexpTokenizer("[\w’]+", flags=re.UNICODE)
+        #self.tokenizer = nltk.word_tokenize
         self.stopwords = open('stoplist.txt').read().splitlines() #from file
         try:
             self.stopwords.extend(nltk.corpus.stopwords.words('english')) #from nltk corpus
@@ -91,15 +91,14 @@ def write_to_file(output, filename, output_path):
     outfile = output_path + filename[-8:-5] + '.wts'
     with open(outfile, "w") as f:
         f.write(output)
-    print "%s done" %outfile
 
-@profile
-def main(input_path='../input_files', output_path='out_files', number_of_files=503):
+#@profile
+def main(input_path='input_files', output_path='out_files', number_of_files=503):
     list_of_files = []
     for (dirpath, dirnames, filenames) in os.walk(input_path):
         for filename in filenames:
             list_of_files.append(os.sep.join([dirpath, filename])) #List of complete files
-    #random.shuffle(list_of_files) #Randomizing the order of files in the list
+    random.shuffle(list_of_files) #Randomizing the order of files in the list
 
     cwts = Calcwts()
     tkr = Tokenization()
@@ -128,22 +127,21 @@ def main(input_path='../input_files', output_path='out_files', number_of_files=5
         doclen = sum(cwts.model[doc].values()) #length of document
         output = "term \t tf-idf weight \t BM25 ranking \n"
         for word in cwts.model[doc].keys():
-            #output += "%s \t %s \t %s \n" %(word, cwts.tf_idf(word, doc), cwts.bm25_ranking(word, doc))
-            output += "%s \t %s \n" %(word, cwts.tf_idf(word, doc, doclen))
+            output += "%s \t %s \t %s \n" %(word, cwts.tf_idf(word, doc, doclen), cwts.bm25_ranking(word, doc, doclen))
+            #output += "%s \t %s \n" %(word, cwts.tf_idf(word, doc, doclen))
         write_to_file(output, doc, output_path)
 
 if __name__ == "__main__":
-    main()
-    # try:
-    #     input_path = sys.argv[1] #Path to input directory
-    #     output_path = sys.argv[2] #Path to output directory
-    #     if len(sys.argv) == 3:
-    #         main(input_path, output_path)
-    #     else:
-    #         number_of_files = eval(sys.argv[3]) #Number of files
-    #         main(input_path, output_path, number_of_files)
-    # except Exception:
-    #     print "Missing Parameters"
-    #     print "Usage: ./calcwts input-directory output-directory <n>"
-    #     print "<n> (Optional parameter, Default value: 100) - Number of files in the collection, n = [1, 503]"
-    #     sys.exit(1)
+    try:
+        input_path = sys.argv[1] #Path to input directory
+        output_path = sys.argv[2] #Path to output directory
+        if len(sys.argv) == 3:
+            main(input_path, output_path)
+        else:
+            number_of_files = eval(sys.argv[3]) #Number of files
+            main(input_path, output_path, number_of_files)
+    except Exception:
+        print "Missing Parameters"
+        print "Usage: ./calcwts input-directory output-directory <n>"
+        print "<n> (Optional parameter, Default value: 100) - Number of files in the collection, n = [1, 503]"
+        sys.exit(1)
