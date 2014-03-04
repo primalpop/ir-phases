@@ -17,24 +17,28 @@ class Calcwts:
 
     def __init__(self):
         self.model = collections.defaultdict(dict) #document : term : frequency
-        self.vocabulary = [] #Complete list of tokens
         self.total_docs = 0 #Total Number of documents
         self.avg_doclen = 0 #Average length of documents
+        self.inverse_doc_freq = {} #Inverse Document Frequency
 
-    def freq(self, token, tokens):
-        return tokens.count(token)
+    def freq(self, tokens):
+        index = {}
+        for (term, freq) in collections.Counter(tokens).iteritems():
+            index[term] = freq
+        return index
 
     def tf(self, term_freq, total_freq):
         return term_freq / float (total_freq)
 
     def idf(self, word):
         """ Computes Inverse Document frequency """
-        return math.log(self.total_docs / float(self.freq(word, self.vocabulary)))
+        return math.log(self.total_docs / float(self.inverse_doc_freq[word]))
 
-    def tf_idf(self, word, doc):
+    @profile    
+    def tf_idf(self, word, doc, doclen):
+        #import ipdb; ipdb.set_trace()
         term_freq = self.model[doc][word]
-        total_freq = sum(self.model[doc].values()) #length of document
-        tf_value = self.tf(term_freq, total_freq)
+        tf_value = self.tf(term_freq, doclen)
         idf_value = self.idf(word)
         return tf_value * idf_value
 
@@ -87,10 +91,10 @@ def write_to_file(output, filename, output_path):
     outfile = output_path + filename[-8:-5] + '.wts'
     with open(outfile, "w") as f:
         f.write(output)
-     print "%s done" %outfile
+    print "%s done" %outfile
 
-#@profile
-def main(input_path='../input_files', output_path='out_files', number_of_files=100):
+@profile
+def main(input_path='../input_files', output_path='out_files', number_of_files=503):
     list_of_files = []
     for (dirpath, dirnames, filenames) in os.walk(input_path):
         for filename in filenames:
@@ -103,11 +107,14 @@ def main(input_path='../input_files', output_path='out_files', number_of_files=1
         filename = list_of_files[i]
         cleaned = tkr.clean_html(filename) #cleaning raw html string
         tokens = tkr.extract_tokens(cleaned) #tokenization
+        token_frequency = cwts.freq(tokens)
         for token in tokens:
-            cwts.model[filename][token] = cwts.freq(token, tokens)
+            cwts.model[filename][token] = token_frequency[token]
 
+    vocabulary = []
     for docs in cwts.model.values():
-        cwts.vocabulary.extend(docs.keys()) # for computing document frequency in idf
+        vocabulary.extend(docs.keys()) # for computing document frequency in idf
+    cwts.inverse_doc_freq = cwts.freq(vocabulary)
 
     cwts.total_docs = len(cwts.model.keys())
     for d in cwts.model.keys():
@@ -118,23 +125,25 @@ def main(input_path='../input_files', output_path='out_files', number_of_files=1
     if not os.path.exists(output_path): os.makedirs(output_path)
     for i in range(0, number_of_files):
         doc = list_of_files[i]
+        doclen = sum(cwts.model[doc].values()) #length of document
         output = "term \t tf-idf weight \t BM25 ranking \n"
         for word in cwts.model[doc].keys():
             #output += "%s \t %s \t %s \n" %(word, cwts.tf_idf(word, doc), cwts.bm25_ranking(word, doc))
-            output += "%s \t %s \n" %(word, cwts.tf_idf(word, doc))
+            output += "%s \t %s \n" %(word, cwts.tf_idf(word, doc, doclen))
         write_to_file(output, doc, output_path)
 
 if __name__ == "__main__":
-    try:
-        input_path = sys.argv[1] #Path to input directory
-        output_path = sys.argv[2] #Path to output directory
-        if len(sys.argv) == 3:
-            main(input_path, output_path)
-        else:
-            number_of_files = eval(sys.argv[3]) #Number of files
-            main(input_path, output_path, number_of_files)
-    except Exception:
-        print "Missing Parameters"
-        print "Usage: ./calcwts input-directory output-directory <n>"
-        print "<n> (Optional parameter, Default value: 100) - Number of files in the collection, n = [1, 503]"
-        sys.exit(1)
+    main()
+    # try:
+    #     input_path = sys.argv[1] #Path to input directory
+    #     output_path = sys.argv[2] #Path to output directory
+    #     if len(sys.argv) == 3:
+    #         main(input_path, output_path)
+    #     else:
+    #         number_of_files = eval(sys.argv[3]) #Number of files
+    #         main(input_path, output_path, number_of_files)
+    # except Exception:
+    #     print "Missing Parameters"
+    #     print "Usage: ./calcwts input-directory output-directory <n>"
+    #     print "<n> (Optional parameter, Default value: 100) - Number of files in the collection, n = [1, 503]"
+    #     sys.exit(1)
