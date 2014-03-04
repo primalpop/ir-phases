@@ -13,128 +13,128 @@ import os, sys, re
 import collections
 import random, math
 
-def freq(tok, tokens):
-    return tokens.count(tok)
+class Calcwts:
 
-def tf(term_freq, total_freq):
-    return term_freq / float (total_freq)
+    def __init__(self):
+        self.model = collections.defaultdict(dict) #document : term : frequency
+        self.vocabulary = [] #Complete list of tokens
+        self.total_docs = 0 #Total Number of documents
+        self.avg_doclen = 0 #Average length of documents
 
-def idf(N, word, vocabulary):
-    """
-        N - Total number of documents
-        vocabulary - Complete list of tokens
-    """
-    return math.log(N / float(freq(word, vocabulary)))
+    def freq(self, token, tokens):
+        return tokens.count(token)
 
-def tf_idf(model, word, doc):
-    """
-        model - document : word : frequency
-    """
-    vocabulary = []
-    for docs in model.values():
-        vocabulary.extend(docs.keys()) # for computing document frequency in idf
-    #import ipdb; ipdb.set_trace()
-    term_freq = model[doc][word]   
-    total_freq = sum(model[doc].values()) #length of document
-    N = len(model.keys())
-    tf_value = tf(term_freq, total_freq)
-    idf_value = idf(N, word, vocabulary)  
-    return tf_value * idf_value 
+    def tf(self, term_freq, total_freq):
+        return term_freq / float (total_freq)
 
-def bm25_ranking(model, word, doc):
-    """
-        Calculates BM25 with K1 = 1 and S1 = K1 + 1
-        TODO: Test the results
-    """
-    k1 = 1
-    s1 = k1 + 1
-    avg_doclen = 0
-    freq = model[doc][word]
-    doclen = sum(model[doc].values()) #length of document
-    N = len(model.keys()) #Total number of documents
-    for d in model.keys():
-        avg_doclen += sum(model[d].values())
-    avg_doclen = avg_doclen / float (N) #average document length
-    return s1 * (freq / ( ( (k1 * doclen ) / avg_doclen ) + freq ))                 
+    def idf(self, word):
+        """ Computes Inverse Document frequency """
+        return math.log(self.total_docs / float(self.freq(word, self.vocabulary)))
 
-def clean_html(filename):
-    """
-        Clean the raw string read from Input Document. 
+    def tf_idf(self, word, doc):
+        term_freq = self.model[doc][word]
+        total_freq = sum(self.model[doc].values()) #length of document
+        tf_value = self.tf(term_freq, total_freq)
+        idf_value = self.idf(word)
+        return tf_value * idf_value
+
+    def bm25_ranking(self, word, doc):
+        """Calculates BM25 with K1 = 1 and S1 = K1 + 1 """
+        k1 = 1
+        s1 = k1 + 1
+        freq = self.model[doc][word]
+        doclen = sum(self.model[doc].values()) #length of document
+        return s1 * (freq / ( ( (k1 * doclen ) / self.avg_doclen ) + freq ))
+
+class Tokenization:
+
+    def __init__(self):
+        self.html_parser = HTMLParser.HTMLParser()
+        self.tokenizer = nltk.tokenize.RegexpTokenizer("[\w’]+", flags=re.UNICODE)
+        self.stopwords = open('stoplist.txt').read().splitlines() #from file
+        try:
+            self.stopwords.extend(nltk.corpus.stopwords.words('english')) #from nltk corpus
+        except Exception:
+            pass
+
+    def clean_html(self, filename):
+        """
+        Clean the raw string read from Input Document.
         It removes the html markup, formatting as well as non alphanumeric characters.
-        Return string. 
-    """
-    html_parser = HTMLParser.HTMLParser()
-    f = open(filename)
-    raw = f.read()
-    cleaned = nltk.clean_html(raw)     
-    cleaned = cleaned.decode('utf8', 'ignore')
-    cleaned = html_parser.unescape(cleaned)
-    cleaned = unicodedata.normalize('NFKD', cleaned).encode('latin-1','ignore')
-    return cleaned
+        Return string.
+        """
+        f = open(filename)
+        raw = f.read()
+        cleaned = nltk.clean_html(raw)
+        cleaned = cleaned.decode('utf8', 'ignore')
+        cleaned = self.html_parser.unescape(cleaned)
+        cleaned = unicodedata.normalize('NFKD', cleaned).encode('latin-1','ignore')
+        return cleaned
 
-def tokenizer(cleaned):
-    """
+    def extract_tokens(self, cleaned):
+        """
         Converts cleaned text to a vocabulary.
         Returns dictionary.
-    """
-    tokenizer = nltk.tokenize.RegexpTokenizer("[\w’]+", flags=re.UNICODE)
-    text = tokenizer.tokenize(cleaned)
-    words = [w.lower() for w in text if len(w) > 2]
-    #Stopwords removal
-    stopwords = open('stoplist.txt').read().splitlines() #from file
-    try:
-        stopwords.extend(nltk.corpus.stopwords.words('english')) #from nltk corpus
-    except Exception:
-        pass   
-    words = [word for word in words if word not in stopwords]    
-    return words
+        """
+        text = self.tokenizer.tokenize(cleaned)
+        words = [w.lower() for w in text if len(w) > 2]
+        #Stopwords removal
+        words = [word for word in words if word not in self.stopwords]
+        return words
 
 def write_to_file(output, filename, output_path):
-    """
-        Writes into an output file.
-    """
-    if not os.path.exists(output_path):
-        os.makedirs(output_path)
+    """ Writes into an output file. """
     outfile = output_path + filename[-8:-5] + '.wts'
     with open(outfile, "w") as f:
         f.write(output)
-    return
+     print "%s done" %outfile
 
-if __name__ == "__main__":
-    
-    try:
-        input_path = sys.argv[1] #Path to input directory
-        output_path = sys.argv[2] #Path to output directory
-        if len(sys.argv) == 3:
-            number_of_files = 503 # w.r.t files directory provided
-        else: 
-            number_of_files = eval(sys.argv[3]) #Number of files   
-        if not output_path.endswith('/'): output_path = output_path + '/' #Checks and adds trailing slash to output directory
-    except:
-        print "Missing Parameters"
-        print "Usage: ./calcwts input-directory output-directory <n>"
-        print "<n> (Optional parameter, Default value: 503) - Number of files in the collection, n = [1, 503]"
-        sys.exit(1)    
-        
+#@profile
+def main(input_path='../input_files', output_path='out_files', number_of_files=503):
     list_of_files = []
     for (dirpath, dirnames, filenames) in os.walk(input_path):
         for filename in filenames:
             list_of_files.append(os.sep.join([dirpath, filename])) #List of complete files
     #random.shuffle(list_of_files) #Randomizing the order of files in the list
-    
-    model = collections.defaultdict(dict) #document : term : frequency
+
+    cwts = Calcwts()
+    tkr = Tokenization()
     for i in range(0, number_of_files): # Slicing the list of files as per Number of files
         filename = list_of_files[i]
-        cleaned = clean_html(filename) #cleaning raw html string
-        tokens = tokenizer(cleaned) #tokenization
+        cleaned = tkr.clean_html(filename) #cleaning raw html string
+        tokens = tkr.extract_tokens(cleaned) #tokenization
         for token in tokens:
-            model[filename][token] = freq(token, tokens)
-        print "filename %s tokenization done" %filename    
+            cwts.model[filename][token] = cwts.freq(token, tokens)
 
+    for docs in cwts.model.values():
+        cwts.vocabulary.extend(docs.keys()) # for computing document frequency in idf
+
+    cwts.total_docs = len(cwts.model.keys())
+    for d in cwts.model.keys():
+        cwts.avg_doclen += sum(cwts.model[d].values())
+    cwts.avg_doclen /= float(cwts.total_docs) #average document length
+
+    if not output_path.endswith('/'): output_path = output_path + '/' #Checks and adds trailing slash to output directory
+    if not os.path.exists(output_path): os.makedirs(output_path)
     for i in range(0, number_of_files):
         doc = list_of_files[i]
-        output = "word \t tf-idf weight \t BM25 Ranking \n"
-        for word in model[doc].keys():
-            output += "%s \t %s \t %s \n" %(word, tf_idf(model, word, doc), bm25_ranking(model, word, doc))
-        write_to_file(output, doc, output_path)     
-        
+        output = "term \t tf-idf weight \t BM25 ranking \n"
+        for word in cwts.model[doc].keys():
+            #output += "%s \t %s \t %s \n" %(word, cwts.tf_idf(word, doc), cwts.bm25_ranking(word, doc))
+            output += "%s \t %s \n" %(word, cwts.tf_idf(word, doc))
+        write_to_file(output, doc, output_path)
+
+if __name__ == "__main__":
+    try:
+        input_path = sys.argv[1] #Path to input directory
+        output_path = sys.argv[2] #Path to output directory
+        if len(sys.argv) == 3:
+            main(input_path, output_path)
+        else:
+            number_of_files = eval(sys.argv[3]) #Number of files
+            main(input_path, output_path, number_of_files)
+    except Exception:
+        print "Missing Parameters"
+        print "Usage: ./calcwts input-directory output-directory <n>"
+        print "<n> (Optional parameter, Default value: 503) - Number of files in the collection, n = [1, 503]"
+        sys.exit(1)
