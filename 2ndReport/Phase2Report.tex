@@ -7,7 +7,7 @@
 \usepackage{amsmath,amsfonts,amsthm} % Math packages
 \usepackage[pdftex]{graphicx}	
 \usepackage{url}
-
+\usepackage{soul,color}
 
 %%% Custom sectioning
 \usepackage{sectsty}
@@ -56,58 +56,86 @@
 \begin{document}
 \maketitle
 \section{Introduction}
-Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Aenean commodo ligula eget dolor. Aenean massa. Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Donec quam felis, ultricies nec, pellentesque eu, pretium quis, sem. In enim justo, rhoncus ut, imperdiet a, venenatis vitae, justo. Nullam dictum felis eu pede mollis pretium. Integer tincidunt. Cras dapibus. Vivamus elementum semper nisi. Aliquam lorem ante, dapibus in, viverra quis, feugiat a, tellus:
-\begin{align} 
-	\begin{split}
-	(x+y)^3 	&= (x+y)^2(x+y)\\
-					&=(x^2+2xy+y^2)(x+y)\\
-					&=(x^3+2x^2y+xy^2) + (x^2y+2xy^2+y^3)\\
-					&=x^3+3x^2y+3xy^2+y^3
-	\end{split}					
-\end{align}
-Phasellus viverra nulla ut metus varius laoreet. Quisque rutrum. Aenean imperdiet. Etiam ultricies nisi vel augue. Curabitur ullamcorper ultricies 
+In Phase 2 of the project, I have implemented a program to calculate the term weights for the tokens that occur in each document in a given collection. Additionally I have implemented the Best Match 25 (BM25) for ranking the terms in the collection and also evaluated the performance of the code in terms of running time. I have used Python to code the program. To execute the program from a terminal (after setting right permissions for the file), type 
 
-\paragraph{Input}
+\begin{verbatim}
+$./calcwts input-directory output-directory <n>
+\end{verbatim}
+
+The last parameter is optional and specifies the number of files which should be considered from the input directory (default value - 100). You need to install the NLTK to run the program. Please refer to the documentation\footnote{\url{http://www.nltk.org/install.html}} on how to install NLTK.
 
 \paragraph{Output}
 
+The output\_directory contains one output file per input file. The filename corresponds to the name of the input file with extension changed to "wts", for example the output file for 001.html is 001.wts. In the output file, there is one line per token that survived preprocessing. That line contains the token and the token weight.
+
 \section{Preprocessing}
 
-Tokenization improvements
+The preprocessor used in Phase 1 was improved in terms of performance and quality of tokens. I used HTMLParser to unescape the html special characters. The resulting unicode text was converted into ascii by using the normalize function of unicodedata as in Phase 1. The preprocessing was extended to incorporate removal of stopwords, words that occur only once in the entire corpus, and words of length 1. The list of stopwords was read from stoplist.txt (provided in homework description). This list was extended with English stopwords corpus available from NLTK (encapsulated in try-catch block so as to fail safely in case it doesn't exist on the machine).
 
-to object oriented
-
-to RegExp tokenize http://www.nltk.org/api/nltk.tokenize.html
-http://docs.huihoo.com/nltk/0.9.5/guides/tokenize.html
-
-to HTMLParser
+Additionally, I changed the code to Object Oriented Programming so as to increase the reuse of code across methods. This helped me save some computation cycles and memory usage. The terms extracted were stored in a nested dictionary with their frequency across the document in which it occurs. The frequency could be retrieved using a simple dictionary operation (dictionary[document][term]).   
 
 \section{Term weighting}
 
-tf-idf - algorithm and formula, hashtable
+Term weighting was computed using the product of term frequency (tf) and inverse document frequency (idf). For term frequency I used the following formula.
+ 
+\begin{align} 
+	\begin{split}
+	tf_{i,j} 	&= \frac{f_{i,j}}{\sum\limits_{i} f_{i,j}}  
+	\end{split}					
+\end{align}
+
+where the numerator $f_{i,j}$ denotes freq(wordi in documentj) and the denominator denotes totalfreq(all tokens in documentj) i.e. the term frequency is being normalized the length of document so that repeated terms in longer documents are not favored. The length of document was found out by summing up all the term frequencies in the document.
+
+Inverse document frequency was computed using the following formula. 
+
+\begin{align} 
+	\begin{split}
+	idf_{i} 	&= log\frac{N}{n_{i}}  
+	\end{split}					
+\end{align}
+
+
+N denotes the total number of documents across the collection. $n_{i}$ is the number of documents in which the term $k_{i}$ occurs (inversed document frequency). This was computed by counting the number of times, a token appeared in the list of tokens formed by using the term index of the dictionary mentioned earlier. Thus idf is computed over the entire collection while tf is computed on a per document basis. 
+
+By multipying these two values (tf and idf) we obtain the required term weighting.
+
+\begin{align} 
+	\begin{split}
+	tf-idf_{i, j} 	&= f_{i,j} * log\frac{N}{n_{i}}  
+	\end{split}					
+\end{align}
 
 \subsection{BM25 Ranking}
 
-formula - values of K1 and S1
+Best Match 25 (BM) Ranking was implemented by combining the term frequency factor and document length normalization. The equation is as follows.
+
+\begin{align} 
+	\begin{split}
+	F_{i, j} 	&= S_{1} * \frac{f_{i,j}}{\frac{K1 * len(d_{j}}{avg\_doclen} + f{i,j}}
+	\end{split}					
+\end{align} 
+
+The recommended values of $K_{1} = 1$ and $S_{1} = K_{1} + 1$ was used for computations. The avg\_doclen was found out by summing up the term frequencies across all documents and dividing by total number of documents.
 
 \section{Evaluation}
 
-Show two examples of input documents and the resulting (surviving) tokens and their weights. Discuss the efficiency of your approach in terms of your timings on a linux machine (use the time command) as a function of number of documents indexed. 
+I ran calcwts on a varying number of documents and plotted a graph of the indexing time as a function of the number of documents. The timings was done on the complete process, starting with the raw input files and ending with output files. The machine used for experiments is the same one from Phase 1.
+
+\hl{Include graph and table(optional)}
+
+\paragraph{Profiling}
+
+I used the line\_profiler\footnote{\url{https://pythonhosted.org/line_profiler/}} to see how much time each line of my code is taking to run. As expected tokenization and tf-idf computation takes most of the time (refer \hl{Appendix}). The nested dictionary turns out to be the culprit for relatively slow execution of the program with larger number of input files. 
 
 \begin{thebibliography}{1}
 
-  \bibitem{notes} John W. Dower {\em Readings compiled for History
-  21.479.}  1991.
+\bibitem{notes} Term weighting and BM25 reference http://www.csee.umbc.edu/~nicholas/676/mir2edSlides/slides\_chap03.pdf
 
-  \bibitem{impj}  The Japan Reader {\em Imperial Japan 1800-1945} 1973:
-  Random House, N.Y.
+ \bibitem{impj}Python nested dictionary http://stackoverflow.com/questions/635483/what-is-the-best-way-to-implement-nested-dictionaries-in-python
+  
+  \bibitem{norman} Unescape html special characters http://stackoverflow.com/questions/11405996/how-can-i-use-python-to-replace-html-escape-characters
 
-  \bibitem{norman} E. H. Norman {\em Japan's emergence as a modern
-  state} 1940: International Secretariat, Institute of Pacific
-  Relations.
-
-  \bibitem{fo} Bob Tadashi Wakabayashi {\em Anti-Foreignism and Western
-  Learning in Early-Modern Japan} 1986: Harvard University Press.
+  \bibitem{fo} Python Performance Analysis http://www.huyng.com/posts/python-performance-analysis/
 
   \end{thebibliography}
 

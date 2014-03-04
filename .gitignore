@@ -37,3 +37,19 @@ nosetests.xml
 
 .DS*
 out_files/
+sample*
+*.lprof
+
+# Latex
+*.aux
+*.log
+*.nav
+*.snm
+*.out
+*.toc
+*.pdf
+*.bbl
+*.blg
+*.tar
+temp.*
+*.gz

@@ -39,7 +39,7 @@ class Calcwts:
         return tf_value * idf_value
 
     def bm25_ranking(self, word, doc):
-        """Calculates BM25 with K1 = 1 and S1 = K1 + 1 """
+        """ Calculates BM25 with K1 = 1 and S1 = K1 + 1 """
         k1 = 1
         s1 = k1 + 1
         freq = self.model[doc][word]
@@ -90,7 +90,7 @@ def write_to_file(output, filename, output_path):
      print "%s done" %outfile
 
 #@profile
-def main(input_path='../input_files', output_path='out_files', number_of_files=503):
+def main(input_path='../input_files', output_path='out_files', number_of_files=100):
     list_of_files = []
     for (dirpath, dirnames, filenames) in os.walk(input_path):
         for filename in filenames:
@@ -136,5 +136,5 @@ if __name__ == "__main__":
     except Exception:
         print "Missing Parameters"
         print "Usage: ./calcwts input-directory output-directory <n>"
-        print "<n> (Optional parameter, Default value: 503) - Number of files in the collection, n = [1, 503]"
+        print "<n> (Optional parameter, Default value: 100) - Number of files in the collection, n = [1, 503]"
         sys.exit(1)
