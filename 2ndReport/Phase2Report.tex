@@ -70,7 +70,7 @@ The output\_directory contains one output file per input file. The filename corr
 
 \section{Preprocessing}
 
-The preprocessor used in Phase 1 was improved in terms of performance and quality of tokens. I used HTMLParser to unescape the html special characters. The resulting unicode text was converted into ascii by using the normalize function of unicodedata as in Phase 1. The preprocessing was extended to incorporate removal of stopwords, words that occur only once in the entire corpus, and words of length 1. The list of stopwords was read from stoplist.txt (provided in homework description). This list was extended with English stopwords corpus available from NLTK (encapsulated in try-catch block so as to fail safely in case it doesn't exist on the machine).
+The preprocessor used in Phase 1 was improved in terms of performance and quality of tokens. I used HTMLParser to unescape the html special characters. The resulting unicode text was converted into ascii by using the normalize function of unicodedata as in Phase 1. The preprocessing was extended to incorporate removal of stopwords, words that occur only once in the entire corpus, and words of length 1. The list of stopwords was read from stoplist.txt (provided in homework description). This list was extended with English stopwords corpus available from NLTK (encapsulated in try-catch block so as to fail safely in case it doesn't exist on the machine). I also experimented with RegExpTokenizer to see if it improves the quality of the tokens.
 
 Additionally, I changed the code to Object Oriented Programming so as to increase the reuse of code across methods. This helped me save some computation cycles and memory usage. The terms extracted were stored in a nested dictionary with their frequency across the document in which it occurs. The frequency could be retrieved using a simple dictionary operation (dictionary[document][term]).   
 
@@ -119,17 +119,31 @@ The recommended values of $K_{1} = 1$ and $S_{1} = K_{1} + 1$ was used for compu
 
 \section{Evaluation}
 
-I ran calcwts on a varying number of documents and plotted a graph of the indexing time as a function of the number of documents. The timings was done on the complete process, starting with the raw input files and ending with output files. The machine used for experiments is the same one from Phase 1.
+I ran calcwts on a varying number of documents and plotted a graph of the indexing time as a function of the number of documents. The timings was done on the complete process, starting with the raw input files and ending with output files. For experiments, I used a macbook air with 8 gb of ram. In the first graph, the real time (elapsed time) taken by term weight calculation program increases linearly with number of files. But with larger number of files the time grows sublinearly as you can see in the second graph. The system time remains fairly constant throughout the first graph where as it registers a slight increase in the second graph. With increasing size of the term vocabulary, CPU spends more time in kernel mode for operations which is as expected. Sample output files with tf-idf weights and BM25 ranking have been sent along with this report. 
 
-\hl{Include graph and table(optional)}
+\begin{figure}[h] % Inline image example
+  \begin{center}
+    \includegraphics[width=0.8\textwidth]{20chart.png}
+  \end{center}
+  \caption{Execution time of calcwts for number of documents (10, 20, 40, 80, 100)}
+\end{figure}
+
+\begin{figure}[h] % Inline image example
+  \begin{center}
+    \includegraphics[width=0.8\textwidth]{100chart.png}
+  \end{center}
+  \caption{Execution time of calcwts for number of documents (100, 200, 300, 400, 500)}
+\end{figure}
 
 \paragraph{Profiling}
 
-I used the line\_profiler\footnote{\url{https://pythonhosted.org/line_profiler/}} to see how much time each line of my code is taking to run. As expected tokenization and tf-idf computation takes most of the time (refer \hl{Appendix}). The nested dictionary turns out to be the culprit for relatively slow execution of the program with larger number of input files. 
+I used the line\_profiler\footnote{\url{https://pythonhosted.org/line_profiler/}} to see how much time each line of my code is taking to run. As expected tokenization and tf-idf computation takes most of the time. In the initial version of the code, profiling helped me discover bottlenecks in the program (linear time count) and I replaced it with a hashtable (constant time) to reduce the time taken exponentially (from more than 1000 seconds to just under 10 seconds).
 
 \begin{thebibliography}{1}
 
 \bibitem{notes} Term weighting and BM25 reference http://www.csee.umbc.edu/~nicholas/676/mir2edSlides/slides\_chap03.pdf
+
+\bibitem{regexp} RegExp Tokenizer http://www.nltk.org/api/nltk.tokenize.html
 
  \bibitem{impj}Python nested dictionary http://stackoverflow.com/questions/635483/what-is-the-best-way-to-implement-nested-dictionaries-in-python
   
