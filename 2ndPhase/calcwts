@@ -35,10 +35,10 @@ def tf_idf(model, word, doc):
         vocabulary.extend(docs.keys()) # for computing document frequency in idf
     #import ipdb; ipdb.set_trace()
     term_freq = model[doc][word]   
-    total_freq = sum(model[doc].values()) #for normalizing in tf
+    total_freq = sum(model[doc].values()) #length of document
     N = len(model.keys())
     tf_value = tf(term_freq, total_freq)
-    idf_value = idf(N, word, vocabulary) 
+    idf_value = idf(N, word, vocabulary)  
     return tf_value * idf_value 
 
 def bm25_ranking(model, word, doc):
@@ -51,7 +51,7 @@ def bm25_ranking(model, word, doc):
     avg_doclen = 0
     freq = model[doc][word]
     doclen = sum(model[doc].values()) #length of document
-    N = len(model.keys())
+    N = len(model.keys()) #Total number of documents
     for d in model.keys():
         avg_doclen += sum(model[d].values())
     avg_doclen = avg_doclen / float (N) #average document length
@@ -95,7 +95,7 @@ def write_to_file(output, filename, output_path):
     """
     if not os.path.exists(output_path):
         os.makedirs(output_path)
-    outfile = output_path + filename[-8:-5] + '.txt'
+    outfile = output_path + filename[-8:-5] + '.wts'
     with open(outfile, "w") as f:
         f.write(output)
     return
@@ -105,13 +105,15 @@ if __name__ == "__main__":
     try:
         input_path = sys.argv[1] #Path to input directory
         output_path = sys.argv[2] #Path to output directory
-        number_of_files = eval(sys.argv[3]) #Number of files
+        if len(sys.argv) == 3:
+            number_of_files = 503 # w.r.t files directory provided
+        else: 
+            number_of_files = eval(sys.argv[3]) #Number of files   
         if not output_path.endswith('/'): output_path = output_path + '/' #Checks and adds trailing slash to output directory
-    
     except:
         print "Missing Parameters"
-        print "Usage: python preprocessor.py files out_files <n>"
-        print "<n> - Number of files, n = [1, 503]"
+        print "Usage: ./calcwts input-directory output-directory <n>"
+        print "<n> (Optional parameter, Default value: 503) - Number of files in the collection, n = [1, 503]"
         sys.exit(1)    
         
     list_of_files = []
@@ -127,11 +129,12 @@ if __name__ == "__main__":
         tokens = tokenizer(cleaned) #tokenization
         for token in tokens:
             model[filename][token] = freq(token, tokens)
+        print "filename %s tokenization done" %filename    
 
     for i in range(0, number_of_files):
         doc = list_of_files[i]
-        output = ""
+        output = "word \t tf-idf weight \t BM25 Ranking \n"
         for word in model[doc].keys():
-            output += "%s \t %s \n" %(word, tf_idf(model, word, doc))
+            output += "%s \t %s \t %s \n" %(word, tf_idf(model, word, doc), bm25_ranking(model, word, doc))
         write_to_file(output, doc, output_path)     
         
