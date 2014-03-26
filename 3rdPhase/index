@@ -13,8 +13,15 @@ import os, sys, re
 import collections
 import random, math
 
-class Calcwts:
+class Index:
 
+    def __init__(self):
+        self.weights = collections.defaultdict(dict) #term : document : normalized term weight
+        self.dictionary = "dictionary.txt"
+        self.postings = "postings.txt"
+
+class Calcwts:
+    """ Methods and variables for term weight computation """
     def __init__(self):
         self.model = collections.defaultdict(dict) #document : term : frequency
         self.total_docs = 0 #Total Number of documents
@@ -34,7 +41,7 @@ class Calcwts:
         """ Computes Inverse Document frequency """
         return math.log(self.total_docs / float(self.inverse_doc_freq[word]))
 
-    #@profile    
+    #@profile
     def tf_idf(self, word, doc, doclen):
         #import ipdb; ipdb.set_trace()
         term_freq = self.model[doc][word]
@@ -81,19 +88,20 @@ class Tokenization:
         Returns dictionary.
         """
         text = self.tokenizer.tokenize(cleaned)
-        words = [w.lower() for w in text if len(w) > 2]
+        #Limiting words to have size > 2 and < 20 and not numbers
+        words = [w.lower() for w in text if len(w) > 2 and len(w) < 20 and not w.isdigit()]
         #Stopwords removal
         words = [word for word in words if word not in self.stopwords]
         return words
 
 def write_to_file(output, filename, output_path):
     """ Writes into an output file. """
-    outfile = output_path + filename[-8:-5] + '.wts'
+    outfile = output_path + filename
     with open(outfile, "w") as f:
         f.write(output)
 
 #@profile
-def main(input_path='input_files', output_path='out_files', number_of_files=503):
+def main(input_path='input_files', output_path='out_files', number_of_files=10):
     list_of_files = []
     for (dirpath, dirnames, filenames) in os.walk(input_path):
         for filename in filenames:
@@ -106,13 +114,13 @@ def main(input_path='input_files', output_path='out_files', number_of_files=503)
         filename = list_of_files[i]
         cleaned = tkr.clean_html(filename) #cleaning raw html string
         tokens = tkr.extract_tokens(cleaned) #tokenization
-        token_frequency = cwts.freq(tokens)
+        token_frequency = cwts.freq(tokens) #computing frequency of extracted tokens
         for token in tokens:
             cwts.model[filename][token] = token_frequency[token]
 
     vocabulary = []
     for docs in cwts.model.values():
-        vocabulary.extend(docs.keys()) # for computing document frequency in idf
+        vocabulary.extend(docs.keys()) #complete vocabulary with repetitions; for computing document frequency in idf
     cwts.inverse_doc_freq = cwts.freq(vocabulary)
 
     cwts.total_docs = len(cwts.model.keys())
@@ -120,16 +128,31 @@ def main(input_path='input_files', output_path='out_files', number_of_files=503)
         cwts.avg_doclen += sum(cwts.model[d].values())
     cwts.avg_doclen /= float(cwts.total_docs) #average document length
 
-    if not output_path.endswith('/'): output_path = output_path + '/' #Checks and adds trailing slash to output directory
-    if not os.path.exists(output_path): os.makedirs(output_path)
+    #import ipdb; ipdb.set_trace()
+    inv_index = Index()
     for i in range(0, number_of_files):
         doc = list_of_files[i]
         doclen = sum(cwts.model[doc].values()) #length of document
-        output = "term \t tf-idf weight \t BM25 ranking \n"
         for word in cwts.model[doc].keys():
-            output += "%s \t %s \t %s \n" %(word, cwts.tf_idf(word, doc, doclen), cwts.bm25_ranking(word, doc, doclen))
-            #output += "%s \t %s \n" %(word, cwts.tf_idf(word, doc, doclen))
-        write_to_file(output, doc, output_path)
+            inv_index.weights[word][doc] = cwts.tf_idf(word, doc, doclen) #Creating the term weight dictionary
+
+    if not output_path.endswith('/'): output_path = output_path + '/' #Checks and adds trailing slash to output directory
+    if not os.path.exists(output_path): os.makedirs(output_path)
+
+    posting_id = 0 #variable for posting index counter
+    posting_output = "doc id, term weight\n"
+    dictionary_output = "term\ndocument frequency\nLocation of first record in postings file"
+    tuple_dictionary = []
+    for term in inv_index.weights.keys():
+        for doc in inv_index.weights[term].keys():
+            posting_output +=  "%s \t %s \n" %(doc, str(inv_index.weights[term][doc]))
+            posting_id += 1
+        tuple_dictionary.append((term, str(cwts.inverse_doc_freq[term]),
+            str(posting_id - cwts.inverse_doc_freq[term] + 1)))
+    tuple_dictionary.sort() #sorting based on the term
+    dictionary_output +=''.join("\n%s" % '\n'.join(map(str, x)) for x in tuple_dictionary) #string formatting for dictionary
+    write_to_file(posting_output, inv_index.postings,  output_path)
+    write_to_file(dictionary_output, inv_index.dictionary, output_path)
 
 if __name__ == "__main__":
     try:
@@ -142,6 +165,6 @@ if __name__ == "__main__":
             main(input_path, output_path, number_of_files)
     except Exception:
         print "Missing Parameters"
-        print "Usage: ./calcwts input-directory output-directory <n>"
+        print "Usage: ./index input-directory output-directory <n>"
         print "<n> (Optional parameter, Default value: 100) - Number of files in the collection, n = [1, 503]"
         sys.exit(1)
