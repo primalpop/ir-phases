@@ -14,7 +14,7 @@ import collections
 import random, math
 
 class Index:
-
+    """Variables for building index"""
     def __init__(self, output_path):
         self.weights = collections.defaultdict(dict) #term : document : normalized term weight
         self.dictionary_file = output_path + "dictionary.txt"
@@ -35,15 +35,14 @@ class Calcwts:
         return index
 
     def tf(self, term_freq, total_freq):
+        """Computes term frequency"""
         return term_freq / float (total_freq)
 
     def idf(self, word):
         """ Computes Inverse Document frequency """
         return math.log(self.total_docs / float(self.inverse_doc_freq[word]))
 
-    #@profile
     def tf_idf(self, word, doc, doclen):
-        #import ipdb; ipdb.set_trace()
         term_freq = self.model[doc][word]
         tf_value = self.tf(term_freq, doclen)
         idf_value = self.idf(word)
@@ -57,11 +56,10 @@ class Calcwts:
         return s1 * (freq / ( ( (k1 * doclen ) / self.avg_doclen ) + freq ))
 
 class Tokenization:
-
+    """Methods and variables for tokenization"""
     def __init__(self):
         self.html_parser = HTMLParser.HTMLParser()
         self.tokenizer = nltk.tokenize.RegexpTokenizer("[\w’]+", flags=re.UNICODE)
-        #self.tokenizer = nltk.word_tokenize
         self.stopwords = open('stoplist.txt').read().splitlines() #from file
         try:
             self.stopwords.extend(nltk.corpus.stopwords.words('english')) #from nltk corpus
@@ -100,21 +98,21 @@ def write_to_file(output, filename):
         f.write(output)
 
 def compute_file_size(files):
+    """Computes the file size in MB"""
     mb = 1024*1024.0
-    if type(files) is list:
+    if type(files) is list: #for multiple files
         return sum([os.path.getsize(filename) for filename in files]) / mb
-    else:
+    else: #for single file
         return os.path.getsize(files) / mb
 
-#@profile
 def main(input_path='input_files', output_path='out_files', number_of_files=503):
     list_of_files = []
     for (dirpath, dirnames, filenames) in os.walk(input_path):
         for filename in filenames:
             list_of_files.append(os.sep.join([dirpath, filename])) #List of complete files
     random.shuffle(list_of_files) #Randomizing the order of files in the list
+    #print compute_file_size(list_of_files[:number_of_files])
 
-    print compute_file_size(list_of_files[:number_of_files])
     #Checks and adds trailing slash to output directory
     if not output_path.endswith('/'): output_path = output_path + '/'
     if not os.path.exists(output_path): os.makedirs(output_path)
@@ -162,9 +160,8 @@ def main(input_path='input_files', output_path='out_files', number_of_files=503)
     write_to_file(posting_output, inv_index.postings_file)
     write_to_file(dictionary_output, inv_index.dictionary_file)
 
-    print compute_file_size(inv_index.postings_file)
-    print compute_file_size(inv_index.dictionary_file)
-    print('\n \n')
+    #print compute_file_size(inv_index.postings_file)
+    #print compute_file_size(inv_index.dictionary_file)
 
 if __name__ == "__main__":
     try:
