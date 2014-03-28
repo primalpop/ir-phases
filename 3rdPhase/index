@@ -105,6 +105,9 @@ def compute_file_size(files):
     else: #for single file
         return os.path.getsize(files) / mb
 
+def file_id(doc):
+    return os.path.basename(doc)[-8:-5]
+
 def main(input_path='input_files', output_path='out_files', number_of_files=503):
     list_of_files = []
     for (dirpath, dirnames, filenames) in os.walk(input_path):
@@ -151,7 +154,7 @@ def main(input_path='input_files', output_path='out_files', number_of_files=503)
     tuple_dictionary = []
     for term in inv_index.weights.keys():
         for doc in inv_index.weights[term].keys():
-            posting_output +=  "%s \t %s \n" %(doc, str(inv_index.weights[term][doc]))
+            posting_output +=  "%s \t %.8f \n" %(file_id(doc), inv_index.weights[term][doc])
             posting_id += 1
         tuple_dictionary.append((term, str(cwts.inverse_doc_freq[term]),
             str(posting_id - cwts.inverse_doc_freq[term] + 1)))
