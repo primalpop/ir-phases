@@ -80,7 +80,7 @@ I extended the index program from Phase 3 for implementing the retrieval engine.
 
 \subsection{Processing}
 
-The retrieval engine takes in queries which are list of words with their term weights and runs the same preprocessing method on them as was used in previous phases. I modified the clean_html() method of tokenizer so that it would be able to handle single words instead of file objects. After this step, it was converted to a dictionary with query terms and weights, for example: query_vector['international'] = 0.8.  
+The retrieval engine takes in queries which are list of words with their term weights and runs the same preprocessing method on them as was used in previous phases. I modified the $clean\_html()$ method of tokenizer so that it would be able to handle single words instead of file objects. After this step, it was converted to a dictionary with query terms and weights, for example: $query\_vector$['international'] = 0.8.  
 
 \subsection{Calculating Similarity}
 
@@ -103,10 +103,32 @@ The retrieval engine was tested with the sample queries listed on the project pa
 \item diet \\ 
 
 \begin{verbatim}
-
+Hello world
 \end{verbatim}
 
-\item
+\item international affairs
+
+\begin{verbatim}
+Hello world
+\end{verbatim}
+
+\item Zimbabwe
+
+\begin{verbatim}
+Hello world
+\end{verbatim}
+
+\item computer network
+
+\item hydrotherapy
+
+\item identify theft
+
+\item 0.8 international 0.2 affairs
+
+\item 0.2 international 0.2 affairs
+
+\item this is the computer network
 
 \end{itemize}
 
