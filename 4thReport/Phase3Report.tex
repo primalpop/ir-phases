@@ -1,6 +1,5 @@
 \documentclass[paper=a4, fontsize=11pt]{scrartcl}
 \usepackage[T1]{fontenc}
-\usepackage{fourier}
 
 \usepackage[english]{babel}															% English language/hyphenation
 \usepackage[protrusion=true,expansion=true]{microtype}	
@@ -69,44 +68,48 @@ For example
 $./retrieve wts input_files "0.8 international 0.2 affairs"
 \end{verbatim}
 
-The first parameter is path to the input files and the second parameter is a string with query term weights and query terms. You need to install the NLTK to run the program. Please refer to the documentation\footnote{\url{http://www.nltk.org/install.html}} on how to install NLTK. Additionally I have used docopt \footnote{\url{http://docopt.org/}} module for parsing the commandline arguments.
+The first parameter is path to the input files and the second parameter is a string with query term weights and query terms. You need to install the NLTK to run the program. Please refer to the documentation\footnote{\url{http://www.nltk.org/install.html}} on how to install NLTK. Additionally I have used docopt \footnote{\url{http://docopt.org/}} module for parsing multiple command line arguments.
 
 \paragraph{Output}
 
+The output is a ranked list of documents with respect to the query given. The order is based on the document-query similarity scores. Only the first ten documents with highest similarity scores are displayed as a list of tuples with document id and similarity score as first and second elements of the tuple respectively.
 
-\section{Preprocessing and Term weighting}
+\section{Implementation}
 
-I used preprocessing code from previous phase albeit with two minor additional constraints on validity of tokens. The size of token should be between 2 and 20 and it should not be a number. For term weighting, instead of writing the results to a file I stored it in a nested hashtable for easier retrieval. The normalized weight of a term could be retrieved using a simple dictionary operation (weights[document][term], where weights is the name of the dictionary).
+I extended the index program from Phase 3 for implementing the retrieval engine. This helped to reuse some of the data structures as term document dictionary which made the task easier. The same data structure could be instructed from postings and dictionary file from Phase 3 if necessary. 
 
-\section{Building the index}
+\subsection{Processing}
 
-The index was built by iterating through the nested dictionary. For each term, the id of document which it appears in as well as normalized weight of the term is written to the postings file. A counter variable was used to record the last line number written in file. After going through all documents corresponding to a term, a single entry for that term is stored in a list as tuple (term, document frequency, location of first record in postings file). The document frequency for a term was obtained from the inverse document dictionary (inverse\_doc\_freq[term] returns number of documents that contain that term) built in phase 2. After going through all the tokens, the list of tuples were sorted according in alphabetical order of terms and the result was written to the dictionary file.      
+The retrieval engine takes in queries which are list of words with their term weights and runs the same preprocessing method on them as was used in previous phases. I modified the clean_html() method of tokenizer so that it would be able to handle single words instead of file objects. After this step, it was converted to a dictionary with query terms and weights, for example: query_vector['international'] = 0.8.  
 
-\section{Evaluation}
+\subsection{Calculating Similarity}
 
-I ran index on a varying number of documents and plotted a graph of indexing time as a function of the number of documents. The timing was done for the complete process, i.e starting with the raw input files to the generation of two output files. For experiments, I used a macbook air with 8 gb of ram. \\
+The document query similarity was calculated by taking a dot product between query vector and row corresponding to the document in the term document matrix. The term document matrix was implemented as a nested dictionary. The documents in which a term has appeared can be obtained by retrieving the values corresponding to the key (query term) from the first level of the dictionary (i.e weights[term].keys() where weight is the term document matrix). For each term in the query vector, the documents in which it appears was obtained as earlier mentioned. In the next step, the query term weight was multiplied with corresponding term weight from term document matrix and the results were summed up for all terms in the query vector. This sum was stored in another dictionary with document ids as keys. This operation was repeated for all the documents in which the query term was present
 
-In the first graph, the real time (elapsed time) taken by the program increases linearly with number of files (except for a slight decrease for 100 files which happened because randomly chosen list of files in that step were smaller in size compared to earlier step as can be seen from size of files graph). With larger number of files (100, 200, 300, 400, 500) the time grows linearly  as well. The system time remains fairly constant throughout the first graph where as it registers a slight increase in the second graph.  \\
+\section{Results}
 
+After the calculation of similarity scores, the documents with non-zero scores were copied over to a list. This list was sorted in descending order based on the similarity score. The first 10 elements of this sorted list is displayed as output.  
 
-\begin{figure}[h]
-\centering
-\subfigure[10, 20, 40, 80, 100]{ \label{fig:sub1}\includegraphics[width=.6\linewidth]{time_1.png}}
-\subfigure[100, 200, 300, 400, 500]{ \label{fig:sub2}\includegraphics[width=.6\linewidth]{time_2.png}}
-\caption{Execution time of index against number of documents}
-\end{figure}
-
-Additionally, I also compared the output file sizes against set of input files for different number of files. I used the python function os.path.getsize which returns the file size in bytes which was converted into MB by dividing by 1024*1024. \\
-
-As you can see from the graphs below, the size of the postings file was comparable to that of the input document collection. The size of dictionary was much smaller in comparison. For compressing the postings file, I could use a smaller representation of the document id such as hash value or the just the filename instead of using the entire path for each file which on the flip side makes it easier to retrieve the document. Additionally I could use techniques like variable encoding (variable byte codes, gamma codes)  \cite{comp} for compressing the postings file.   
+\subsection{Complexity of algorithms}
 
 
-\begin{figure}[h]
-\centering
-\subfigure[10, 20, 40, 80, 100]{ \label{fig:sub1}\includegraphics[width=.6\linewidth]{size_1.png}}
-\subfigure[100, 200, 300, 400, 500]{ \label{fig:sub2}\includegraphics[width=.6\linewidth]{size_2.png}}
-\caption{Size of files against number of documents}
-\end{figure}
+
+\subsection{Evaluation}
+
+The retrieval engine was tested with the sample queries listed on the project page. The output of queries have been given below
+
+\begin{itemize}
+
+\item diet \\ 
+
+\begin{verbatim}
+
+\end{verbatim}
+
+\item
+
+\end{itemize}
+
 
 \clearpage
 
