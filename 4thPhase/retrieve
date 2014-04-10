@@ -80,14 +80,12 @@ class Tokenization:
         except Exception:
             pass
 
-    def clean_html(self, filename):
+    def clean_html(self, raw):
         """
-        Clean the raw string read from Input Document.
+        Clean the raw string.
         It removes the html markup, formatting as well as non alphanumeric characters.
         Return string.
         """
-        f = open(filename)
-        raw = f.read()
         cleaned = nltk.clean_html(raw)
         cleaned = cleaned.decode('utf8', 'ignore')
         cleaned = self.html_parser.unescape(cleaned)
@@ -123,21 +121,19 @@ def file_id(doc):
     return os.path.basename(doc)
 
 def main(args):
-    data_file = args['<datafile>']
-    drug_file = args['<drugfile>']
-    if data_file is not None:
-        load_table(data_file)
-    elif drug_file is not None:
-        load_missing_drugs(drug_file)
-    else:
-        load_plan_table()
-
-def main(args):
     input_path= args['<files>']
     number_of_files = 503
-    query_string=args['<query_term_weights>'].split()
-    inv_qv = dict(zip(query_string[0::2], query_string[1::2]))
-    query_vector = {v:eval(k) for k, v in inv_qv.items()}
+    query_list = args['<query_term_weights>'].split()
+    
+    tkr = Tokenization()
+
+    query_vector = {}
+    query_tuple = zip(query_list[::2],query_list[1::2])
+    for w, qt in query_tuple:
+        cleaned_qt = tkr.clean_html(qt) 
+        final_qterm = tkr.extract_tokens(cleaned_qt)
+        if len(final_qterm) > 0:
+            query_vector[final_qterm[0]] = eval(w)
 
     list_of_files = []
     for (dirpath, dirnames, filenames) in os.walk(input_path):
@@ -147,10 +143,11 @@ def main(args):
     #print compute_file_size(list_of_files[:number_of_files])
 
     cwts = Calcwts()
-    tkr = Tokenization()
     for i in range(0, number_of_files): # Slicing the list of files as per Number of files
         filename = list_of_files[i]
-        cleaned = tkr.clean_html(filename) #cleaning raw html string
+        file_obj = open(filename)
+        raw_string = file_obj.read()
+        cleaned = tkr.clean_html(raw_string) #cleaning raw html string
         tokens = tkr.extract_tokens(cleaned) #tokenization
         token_frequency = cwts.freq(tokens) #computing frequency of extracted tokens
         for token in tokens:
