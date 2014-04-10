@@ -27,19 +27,19 @@ class Retrieval:
     def process_query(self, query_string):
         #Convert query into a vector for multiplication
         for qterm in query_string:
-            self.query_vector[0, self.vocabulary_index[qterm]] = 1
+            if self.vocabulary_index.has_key(qterm):
+                self.query_vector[0, self.vocabulary_index[qterm]] = 1
 
     @profile
     def dot_product(self):
         #Dot product of TDM and the query vector
-        import ipdb; ipdb.set_trace()
+        #import ipdb; ipdb.set_trace()
         doc = 0
-        tdmatrix_T = self.tdmatrix.transpose() #TDM transpose
         nnz_query = self.query_vector.nonzero()[1] #non_zero_indices in query
-        for row in tdmatrix_T:
+        for i in xrange(50): #change it to tdmatrix dimension equivalent to documents
             self.similarity_scores[doc] = 0
             for element in nnz_query:
-                self.similarity_scores[doc]  += row[0, element] * self.query_vector[0, element]
+                self.similarity_scores[doc]  += self.tdmatrix[element, i] * self.query_vector[0, element]
             doc += 1
 
 class Index:
@@ -185,9 +185,10 @@ def main(input_path='../input_files/', output_path='out_files', number_of_files=
 
     for term in inv_index.weights.keys():
         for doc in inv_index.weights[term].keys():
-            document = (eval(file_id(doc)) - 1) % cwts.total_docs
-            #TODO: reduce precision of floating point to 8 decimal points
-            retriever.tdmatrix[retriever.vocabulary_index[term], document] = inv_index.weights[term][doc]
+            col = eval(file_id(doc)) - 1
+            row = retriever.vocabulary_index[term]
+            term_weight = "%.8f" %(inv_index.weights[term][doc])
+            retriever.tdmatrix[row, col] = eval(term_weight)
 
     #import ipdb; ipdb.set_trace()
     #query_string = "international affairs"
@@ -195,21 +196,21 @@ def main(input_path='../input_files/', output_path='out_files', number_of_files=
     retriever.dot_product()
     print retriever.similarity_scores
 
-# query_string =["international", "affairs"]
-# input_path = "../input_files"
-# main(query_string=query_string)
+query_string =["international", "affairs"]
+input_path = "../input_files"
+main(query_string=query_string)
 
-if __name__ == "__main__":
+# if __name__ == "__main__":
     # try:
-    input_path = sys.argv[1] #Path to input directory
-    output_path = sys.argv[2] #Path to output directory
+    # input_path = sys.argv[1] #Path to input directory
+    # output_path = sys.argv[2] #Path to output directory
     #     if len(sys.argv) == 3:
     #         main(input_path, output_path)
         # else:
-    number_of_files = eval(sys.argv[3]) #Number of files
-    query_string = sys.argv[4:]
-    print query_string
-    main(input_path, output_path, number_of_files, query_string)
+    # number_of_files = eval(sys.argv[3]) #Number of files
+    # query_string = sys.argv[4:]
+    # print query_string
+    # main(input_path, output_path, number_of_files, query_string)
     # except Exception:
     #     print "Missing Parameters"
     #     print "Usage: ./index input-directory output-directory <n>"
