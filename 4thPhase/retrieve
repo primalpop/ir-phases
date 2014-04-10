@@ -124,13 +124,14 @@ def main(args):
     input_path= args['<files>']
     number_of_files = 503
     query_list = args['<query_term_weights>'].split()
-    
+
     tkr = Tokenization()
 
+    #converting into a query vector dictionary
     query_vector = {}
     query_tuple = zip(query_list[::2],query_list[1::2])
     for w, qt in query_tuple:
-        cleaned_qt = tkr.clean_html(qt) 
+        cleaned_qt = tkr.clean_html(qt)
         final_qterm = tkr.extract_tokens(cleaned_qt)
         if len(final_qterm) > 0:
             query_vector[final_qterm[0]] = eval(w)
@@ -173,13 +174,13 @@ def main(args):
     sim_scores = {key: 0 for key in list_of_files}
     for term, wt in query_vector.items():
         for doc in inv_index.weights[term].keys():
-            sim_scores[doc]  += inv_index.weights[term][doc] * wt
+            sim_scores[doc]  += inv_index.weights[term][doc] * wt #computing similarity score
 
-    sim_scores_nnz = {file_id(k):v for k,v in sim_scores.items() if v != 0}
+    sim_scores_nnz = {file_id(k):v for k,v in sim_scores.items() if v != 0} #non zero similarity scores
     if len(sim_scores_nnz) > 0:
         sorted_scores = sorted(sim_scores_nnz.iteritems(), key=operator.itemgetter(1), reverse=True)
         pprint(sorted_scores[:10])
-    else: 
+    else:
         print "No results found"
 
 if __name__ == "__main__":
