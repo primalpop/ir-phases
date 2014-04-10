@@ -84,67 +84,156 @@ The retrieval engine takes in queries which are list of words with their term we
 
 \subsection{Calculating Similarity}
 
-The document query similarity was calculated by taking a dot product between query vector and row corresponding to the document in the term document matrix. The term document matrix was implemented as a nested dictionary. The documents in which a term has appeared can be obtained by retrieving the values corresponding to the key (query term) from the first level of the dictionary (i.e weights[term].keys() where weight is the term document matrix). For each term in the query vector, the documents in which it appears was obtained as earlier mentioned. In the next step, the query term weight was multiplied with corresponding term weight from term document matrix and the results were summed up for all terms in the query vector. This sum was stored in another dictionary with document ids as keys. This operation was repeated for all the documents in which the query term was present
+The document query similarity was calculated by taking a dot product between query vector and row corresponding to the document in the term document matrix. The term document matrix was implemented as a nested dictionary. The documents in which a term has appeared can be obtained by retrieving the values corresponding to the key (query term) from the first level of the dictionary (i.e weights[term].keys() where weight is the term document matrix). For each term in the query vector, the documents in which it appears was obtained as earlier mentioned. In the next step, the query term weight was multiplied with corresponding term weight from term document matrix and the results were summed up for all terms in the query vector. This sum was stored in another dictionary with document ids as keys. This operation was repeated for all the documents in which the query term was present.
+
+\subsection{Complexity of algorithms}
+
+The time complexity of similarity score computation algorithm is based on the following loop
+
+\begin{verbatim}
+for term, wt in query_vector.items():
+        for doc in inv_index.weights[term].keys():
+            sim_scores[doc]  += inv_index.weights[term][doc] * wt
+\end{verbatim}
+
+The outer loop is iterated for every query term while the innermost loop is repeated for every document in which the query term in present. Therefore the time complexity is roughly number of query terms times the number of the documents which contain the term. 
 
 \section{Results}
 
 After the calculation of similarity scores, the documents with non-zero scores were copied over to a list. This list was sorted in descending order based on the similarity score. The first 10 elements of this sorted list is displayed as output.  
 
-\subsection{Complexity of algorithms}
-
-
-
 \subsection{Evaluation}
 
-The retrieval engine was tested with the sample queries listed on the project page. The output of queries have been given below
+The retrieval engine was tested with the sample queries listed on the project page. The output of queries have been given below. For query terms without given weight I have added the each of the term weight as 1.
 
 \begin{itemize}
 
 \item diet \\ 
 
 \begin{verbatim}
-Hello world
+$./retrieve wts ../input_files/ "1.0 diet"
+[('018.html', 0.14490441),
+ ('263.html', 0.00998757),
+ ('009.html', 0.00883198),
+ ('252.html', 0.00757027),
+ ('050.html', 0.00536346),
+ ('152.html', 0.00226413),
+ ('353.html', 0.00124445)]
 \end{verbatim}
 
 \item international affairs
 
 \begin{verbatim}
-Hello world
+$ ./retrieve wts ../input_files/ "1.0 international 1.0 affairs"
+[('219.html', 0.05466675),
+ ('133.html', 0.03876878),
+ ('161.html', 0.03752017),
+ ('117.html', 0.03274394),
+ ('138.html', 0.03180839),
+ ('125.html', 0.02589055),
+ ('205.html', 0.02586048),
+ ('247.html', 0.02556358),
+ ('143.html', 0.02494776),
+ ('197.html', 0.01989135)]
 \end{verbatim}
 
 \item Zimbabwe
 
 \begin{verbatim}
-Hello world
+$ ./retrieve wts ../input_files/ "1.0 Zimbabwe"
+No results found
 \end{verbatim}
 
 \item computer network
+\begin{verbatim}
+$ ./retrieve wts ../input_files/ "1.0 computer 1.0 network"
+[('140.html', 0.08561795),
+ ('060.html', 0.07688407),
+ ('156.html', 0.052877740000000006),
+ ('128.html', 0.04070362),
+ ('135.html', 0.04070362),
+ ('502.html', 0.03878836),
+ ('223.html', 0.02749864),
+ ('499.html', 0.02718124),
+ ('181.html', 0.02698827),
+ ('164.html', 0.02665866)]
+
+\end{verbatim}
 
 \item hydrotherapy
+\begin{verbatim}
+$ ./retrieve wts ../input_files/ "1.0 hydrotherapy"
+[('273.html', 0.0200019)]
+
+\end{verbatim}
 
 \item identify theft
+\begin{verbatim}
+$ ./retrieve wts ../input_files/ "1.0 identify 1.0 theft"
+[('126.html', 0.04120945),
+ ('131.html', 0.03701866),
+ ('379.html', 0.0258251),
+ ('380.html', 0.01470022),
+ ('016.html', 0.013882),
+ ('070.html', 0.01222444),
+ ('145.html', 0.01137552),
+ ('074.html', 0.00857631),
+ ('292.html', 0.0066831899999999994),
+ ('124.html', 0.00536195)]
+
+\end{verbatim}
 
 \item 0.8 international 0.2 affairs
 
+\begin{verbatim}
+$ ./retrieve wts ../input_files/ "0.8 international 0.2 affairs"
+[('161.html', 0.030016136),
+ ('117.html', 0.026195152),
+ ('133.html', 0.026102812),
+ ('138.html', 0.025446712),
+ ('125.html', 0.02071244),
+ ('205.html', 0.020688384000000004),
+ ('247.html', 0.020450864),
+ ('143.html', 0.019958208),
+ ('197.html', 0.01591308),
+ ('243.html', 0.014357464)]
+
+\end{verbatim}
+
 \item 0.2 international 0.2 affairs
+
+\begin{verbatim}
+$ ./retrieve wts ../input_files/ "0.2 international 0.8 affairs"
+[('219.html', 0.043733400000000006),
+ ('133.html', 0.012665968),
+ ('129.html', 0.010436376),
+ ('229.html', 0.009929756000000001),
+ ('226.html', 0.008038374000000001),
+ ('161.html', 0.007504034),
+ ('295.html', 0.007208384),
+ ('117.html', 0.006548788),
+ ('138.html', 0.006361678),
+ ('125.html', 0.00517811)]
+\end{verbatim}
 
 \item this is the computer network
 
+\begin{verbatim}
+$ ./retrieve wts ../input_files/ "1.0 this 1.0 is 1.0 the 1.0 computer 1.0 network"
+[('140.html', 0.08561795),
+ ('060.html', 0.07688407),
+ ('156.html', 0.052877740000000006),
+ ('128.html', 0.04070362),
+ ('135.html', 0.04070362),
+ ('502.html', 0.03878836),
+ ('223.html', 0.02749864),
+ ('499.html', 0.02718124),
+ ('181.html', 0.02698827),
+ ('164.html', 0.02665866)]
+\end{verbatim}
+
 \end{itemize}
 
-
-\clearpage
-
-\begin{thebibliography}{1}
-
-\bibitem{impj}Python nested dictionary http://stackoverflow.com/questions/635483/what-is-the-best-way-to-implement-nested-dictionaries-in-python
-
-\bibitem{comp} http://nlp.stanford.edu/IR-book/html/htmledition/postings-file-compression-1.html
-
-\bibitem{tuple} http://stackoverflow.com/questions/16302209/python-string-from-list-comprehension
-
-
-  \end{thebibliography}
 
 %%% End document
 \end{document}
