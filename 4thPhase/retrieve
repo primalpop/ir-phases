@@ -140,7 +140,6 @@ def main(args):
         for filename in filenames:
             list_of_files.append(os.sep.join([dirpath, filename])) #List of complete files
     random.shuffle(list_of_files) #Randomizing the order of files in the list
-    #print compute_file_size(list_of_files[:number_of_files])
 
     cwts = Calcwts()
     for i in range(0, number_of_files): # Slicing the list of files as per Number of files
@@ -177,8 +176,11 @@ def main(args):
             sim_scores[doc]  += inv_index.weights[term][doc] * wt
 
     sim_scores_nnz = {file_id(k):v for k,v in sim_scores.items() if v != 0}
-    sorted_scores = sorted(sim_scores_nnz.iteritems(), key=operator.itemgetter(1), reverse=True)
-    pprint(sorted_scores[:10])
+    if len(sim_scores_nnz) > 0:
+        sorted_scores = sorted(sim_scores_nnz.iteritems(), key=operator.itemgetter(1), reverse=True)
+        pprint(sorted_scores[:10])
+    else: 
+        print "No results found"
 
 if __name__ == "__main__":
     arguments = docopt(__doc__, version='Retrieve 1.0')
