@@ -68,7 +68,7 @@ For example
 $./retrieve wts input_files "0.8 international 0.2 affairs"
 \end{verbatim}
 
-The first parameter is path to the input files and the second parameter is a string with query term weights and query terms. You need to install the NLTK to run the program. Please refer to the documentation\footnote{\url{http://www.nltk.org/install.html}} on how to install NLTK. Additionally I have used docopt \footnote{\url{http://docopt.org/}} module for parsing multiple command line arguments.
+The first parameter is path to the input files directory and the second parameter is a string with query term weights and query terms. You need to install the NLTK to run the program. Please refer to the documentation\footnote{\url{http://www.nltk.org/install.html}} on how to install NLTK. Additionally I have used docopt \footnote{\url{http://docopt.org/}} module for parsing multiple command line arguments.
 
 \paragraph{Output}
 
@@ -76,7 +76,7 @@ The output is a ranked list of documents with respect to the query given. The or
 
 \section{Implementation}
 
-I extended the index program from Phase 3 for implementing the retrieval engine. This helped to reuse some of the data structures as term document dictionary which made the task easier. The same data structure could be instructed from postings and dictionary file from Phase 3 if necessary. 
+I extended the index program from Phase 3 for implementing the retrieval engine. So I could reuse some of the data structures such as term document dictionary which made the task easier. The same data structure could be constructed from postings and dictionary file from Phase 3 if necessary. 
 
 \subsection{Processing}
 
@@ -84,11 +84,11 @@ The retrieval engine takes in queries which are list of words with their term we
 
 \subsection{Calculating Similarity}
 
-The document query similarity was calculated by taking a dot product between query vector and row corresponding to the document in the term document matrix. The term document matrix was implemented as a nested dictionary. The documents in which a term has appeared can be obtained by retrieving the values corresponding to the key (query term) from the first level of the dictionary (i.e weights[term].keys() where weight is the term document matrix). For each term in the query vector, the documents in which it appears was obtained as earlier mentioned. In the next step, the query term weight was multiplied with corresponding term weight from term document matrix and the results were summed up for all terms in the query vector. This sum was stored in another dictionary with document ids as keys. This operation was repeated for all the documents in which the query term was present.
+The document query similarity was calculated by taking a dot product between query vector and the row corresponding to the document in the term document matrix. The term document matrix was implemented as a nested dictionary. The documents in which a term has appeared can be obtained by retrieving the values corresponding to the key (query term) from the first level of the dictionary (i.e weights[term].keys() where weight is the term document matrix). For each term in the query vector, the documents in which it appears was obtained as earlier mentioned. In the next step, the query term weight was multiplied with corresponding term weight from term document matrix and the results were summed up for all terms in the query vector. This sum was stored in another dictionary with document ids as keys. This operation was repeated for all the documents in which the query term was present.
 
 \subsection{Complexity of algorithms}
 
-The time complexity of similarity score computation algorithm is based on the following loop
+The similarity score computation algorithm is done in the following nested loop.
 
 \begin{verbatim}
 for term, wt in query_vector.items():
@@ -96,7 +96,7 @@ for term, wt in query_vector.items():
             sim_scores[doc]  += inv_index.weights[term][doc] * wt
 \end{verbatim}
 
-The outer loop is iterated for every query term while the innermost loop is repeated for every document in which the query term in present. Therefore the time complexity is roughly number of query terms times the number of the documents which contain the term. 
+The outer loop is iterated for every query term while the innermost loop is repeated for every document in which the query term in present. Therefore, the time complexity is roughly number of query terms times the number of the documents which contain the term. 
 
 \section{Results}
 
@@ -104,7 +104,7 @@ After the calculation of similarity scores, the documents with non-zero scores w
 
 \subsection{Evaluation}
 
-The retrieval engine was tested with the sample queries listed on the project page. The output of queries have been given below. For query terms without given weight I have added the each of the term weight as 1.
+The retrieval engine was tested with the sample queries listed on the project page. The output of queries have been given below. For query terms without given weight I have added the each of the term weight as 1. $'../input\_files'$ is the path to the input directory.
 
 \begin{itemize}
 
@@ -234,6 +234,7 @@ $ ./retrieve wts ../input_files/ "1.0 this 1.0 is 1.0 the 1.0 computer 1.0 netwo
 
 \end{itemize}
 
+In the last query, we can see that the stop words had no effect on the results returned by the retrieval engine.
 
 %%% End document
 \end{document}
