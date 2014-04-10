@@ -7,47 +7,32 @@ Homework 4: http://www.csee.umbc.edu/~nicholas/676/term%20project/hw4.html
 
 Author: Primal Pappachan, primal1@umbc.edu
 
+Usage:
+  retrieve wts <files> <query_term_weights>
+  retrieve -h | --help
+  retrieve --version
+
+Arguments:
+    wts specify weights to query terms
+
+Options:
+  -h --help     Show this screen.
+  --version     Show version.
+
 """
+
 import nltk, unicodedata, HTMLParser
 import os, sys, re
 import collections
 import random, math
-from scipy import sparse
-import numpy as np
-from numpy import random
-
-class Retrieval:
-    """Term Document Matrix"""
-    def __init__(self, number_of_documents, vocabulary_size):
-        self.tdmatrix = sparse.lil_matrix((vocabulary_size, number_of_documents))
-        self.vocabulary_index = {} #stores index of each term in the sparse matrix
-        self.similarity_scores = {} #to be initialized with document names
-        self.query_vector = sparse.lil_matrix((1, vocabulary_size))
-
-    def process_query(self, query_string):
-        #Convert query into a vector for multiplication
-        for qterm in query_string:
-            if self.vocabulary_index.has_key(qterm):
-                self.query_vector[0, self.vocabulary_index[qterm]] = 1
-
-    @profile
-    def dot_product(self):
-        #Dot product of TDM and the query vector
-        #import ipdb; ipdb.set_trace()
-        doc = 0
-        nnz_query = self.query_vector.nonzero()[1] #non_zero_indices in query
-        for i in xrange(50): #change it to tdmatrix dimension equivalent to documents
-            self.similarity_scores[doc] = 0
-            for element in nnz_query:
-                self.similarity_scores[doc]  += self.tdmatrix[element, i] * self.query_vector[0, element]
-            doc += 1
+from pprint import pprint
+import operator
+from docopt import docopt
 
 class Index:
     """Variables for building index"""
-    def __init__(self, output_path):
+    def __init__(self):
         self.weights = collections.defaultdict(dict) #term : document : normalized term weight
-        self.dictionary_file = output_path + "dictionary.txt"
-        self.postings_file = output_path + "postings.txt"
 
 class Calcwts:
     """ Methods and variables for term weight computation """
@@ -135,20 +120,31 @@ def compute_file_size(files):
         return os.path.getsize(files) / mb
 
 def file_id(doc):
-    return os.path.basename(doc)[-8:-5].lstrip('0')
+    return os.path.basename(doc)
 
-@profile
-def main(input_path='../input_files/', output_path='out_files', number_of_files=503, query_string=""):
+def main(args):
+    data_file = args['<datafile>']
+    drug_file = args['<drugfile>']
+    if data_file is not None:
+        load_table(data_file)
+    elif drug_file is not None:
+        load_missing_drugs(drug_file)
+    else:
+        load_plan_table()
+
+def main(args):
+    input_path= args['<files>']
+    number_of_files = 503
+    query_string=args['<query_term_weights>'].split()
+    inv_qv = dict(zip(query_string[0::2], query_string[1::2]))
+    query_vector = {v:eval(k) for k, v in inv_qv.items()}
+
     list_of_files = []
     for (dirpath, dirnames, filenames) in os.walk(input_path):
         for filename in filenames:
             list_of_files.append(os.sep.join([dirpath, filename])) #List of complete files
     random.shuffle(list_of_files) #Randomizing the order of files in the list
     #print compute_file_size(list_of_files[:number_of_files])
-
-    #Checks and adds trailing slash to output directory
-    if not output_path.endswith('/'): output_path = output_path + '/'
-    if not os.path.exists(output_path): os.makedirs(output_path)
 
     cwts = Calcwts()
     tkr = Tokenization()
@@ -170,49 +166,23 @@ def main(input_path='../input_files/', output_path='out_files', number_of_files=
         cwts.avg_doclen += sum(cwts.model[d].values())
     cwts.avg_doclen /= float(cwts.total_docs) #average document length
 
-    #import ipdb; ipdb.set_trace()
-    inv_index = Index(output_path)
+    inv_index = Index()
     for i in range(0, number_of_files):
         doc = list_of_files[i]
         doclen = sum(cwts.model[doc].values()) #length of document
         for word in cwts.model[doc].keys():
-            inv_index.weights[word][doc] = cwts.tf_idf(word, doc, doclen) #Creating the [term][document] weight dictionary
+            term_weight = "%.8f" %(cwts.tf_idf(word, doc, doclen))
+            inv_index.weights[word][doc] = eval(term_weight) #Creating the [term][document] weight dictionary
 
-    retriever = Retrieval(cwts.total_docs, len(set(vocabulary))) #Initializing term document matrix
-    retriever.vocabulary_index = {key: value for key, value in zip(set(vocabulary), range(len(set(vocabulary))))}
-    retriever.similarity_scores = {key: None for key in range(cwts.total_docs)}
-
-
-    for term in inv_index.weights.keys():
+    sim_scores = {key: 0 for key in list_of_files}
+    for term, wt in query_vector.items():
         for doc in inv_index.weights[term].keys():
-            col = eval(file_id(doc)) - 1
-            row = retriever.vocabulary_index[term]
-            term_weight = "%.8f" %(inv_index.weights[term][doc])
-            retriever.tdmatrix[row, col] = eval(term_weight)
+            sim_scores[doc]  += inv_index.weights[term][doc] * wt
 
-    #import ipdb; ipdb.set_trace()
-    #query_string = "international affairs"
-    retriever.process_query(query_string)
-    retriever.dot_product()
-    print retriever.similarity_scores
+    sim_scores_nnz = {file_id(k):v for k,v in sim_scores.items() if v != 0}
+    sorted_scores = sorted(sim_scores_nnz.iteritems(), key=operator.itemgetter(1), reverse=True)
+    pprint(sorted_scores[:10])
 
-query_string =["international", "affairs"]
-input_path = "../input_files"
-main(query_string=query_string)
-
-# if __name__ == "__main__":
-    # try:
-    # input_path = sys.argv[1] #Path to input directory
-    # output_path = sys.argv[2] #Path to output directory
-    #     if len(sys.argv) == 3:
-    #         main(input_path, output_path)
-        # else:
-    # number_of_files = eval(sys.argv[3]) #Number of files
-    # query_string = sys.argv[4:]
-    # print query_string
-    # main(input_path, output_path, number_of_files, query_string)
-    # except Exception:
-    #     print "Missing Parameters"
-    #     print "Usage: ./index input-directory output-directory <n>"
-    #     print "<n> (Optional parameter, Default value: 100) - Number of files in the collection, n = [1, 503]"
-    #     sys.exit(1)
+if __name__ == "__main__":
+    arguments = docopt(__doc__, version='Retrieve 1.0')
+    main(arguments)
