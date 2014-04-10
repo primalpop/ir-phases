@@ -1,0 +1,217 @@
+#!/usr/bin/python
+#coding: utf8
+"""
+index
+
+Homework 4: http://www.csee.umbc.edu/~nicholas/676/term%20project/hw4.html
+
+Author: Primal Pappachan, primal1@umbc.edu
+
+"""
+import nltk, unicodedata, HTMLParser
+import os, sys, re
+import collections
+import random, math
+from scipy import sparse
+import numpy as np
+from numpy import random
+
+class Retrieval:
+    """Term Document Matrix"""
+    def __init__(self, number_of_documents, vocabulary_size):
+        self.tdmatrix = sparse.lil_matrix((vocabulary_size, number_of_documents))
+        self.vocabulary_index = {} #stores index of each term in the sparse matrix
+        self.similarity_scores = {} #to be initialized with document names
+        self.query_vector = sparse.lil_matrix((1, vocabulary_size))
+
+    def process_query(self, query_string):
+        #Convert query into a vector for multiplication
+        for qterm in query_string:
+            self.query_vector[0, self.vocabulary_index[qterm]] = 1
+
+    @profile
+    def dot_product(self):
+        #Dot product of TDM and the query vector
+        import ipdb; ipdb.set_trace()
+        doc = 0
+        tdmatrix_T = self.tdmatrix.transpose() #TDM transpose
+        nnz_query = self.query_vector.nonzero()[1] #non_zero_indices in query
+        for row in tdmatrix_T:
+            self.similarity_scores[doc] = 0
+            for element in nnz_query:
+                self.similarity_scores[doc]  += row[0, element] * self.query_vector[0, element]
+            doc += 1
+
+class Index:
+    """Variables for building index"""
+    def __init__(self, output_path):
+        self.weights = collections.defaultdict(dict) #term : document : normalized term weight
+        self.dictionary_file = output_path + "dictionary.txt"
+        self.postings_file = output_path + "postings.txt"
+
+class Calcwts:
+    """ Methods and variables for term weight computation """
+    def __init__(self):
+        self.model = collections.defaultdict(dict) #document : term : frequency
+        self.total_docs = 0 #Total Number of documents
+        self.avg_doclen = 0 #Average length of documents
+        self.inverse_doc_freq = {} #Inverse Document Frequency
+
+    def freq(self, tokens):
+        index = {}
+        for (term, freq) in collections.Counter(tokens).iteritems():
+            index[term] = freq
+        return index
+
+    def tf(self, term_freq, total_freq):
+        """Computes term frequency"""
+        return term_freq / float (total_freq)
+
+    def idf(self, word):
+        """ Computes Inverse Document frequency """
+        return math.log(self.total_docs / float(self.inverse_doc_freq[word]))
+
+    def tf_idf(self, word, doc, doclen):
+        term_freq = self.model[doc][word]
+        tf_value = self.tf(term_freq, doclen)
+        idf_value = self.idf(word)
+        return tf_value * idf_value
+
+    def bm25_ranking(self, word, doc, doclen):
+        """ Calculates BM25 with K1 = 1 and S1 = K1 + 1 """
+        k1 = 1
+        s1 = k1 + 1
+        freq = self.model[doc][word]
+        return s1 * (freq / ( ( (k1 * doclen ) / self.avg_doclen ) + freq ))
+
+class Tokenization:
+    """Methods and variables for tokenization"""
+    def __init__(self):
+        self.html_parser = HTMLParser.HTMLParser()
+        self.tokenizer = nltk.tokenize.RegexpTokenizer("[\w’]+", flags=re.UNICODE)
+        self.stopwords = open('stoplist.txt').read().splitlines() #from file
+        try:
+            self.stopwords.extend(nltk.corpus.stopwords.words('english')) #from nltk corpus
+        except Exception:
+            pass
+
+    def clean_html(self, filename):
+        """
+        Clean the raw string read from Input Document.
+        It removes the html markup, formatting as well as non alphanumeric characters.
+        Return string.
+        """
+        f = open(filename)
+        raw = f.read()
+        cleaned = nltk.clean_html(raw)
+        cleaned = cleaned.decode('utf8', 'ignore')
+        cleaned = self.html_parser.unescape(cleaned)
+        cleaned = unicodedata.normalize('NFKD', cleaned).encode('latin-1','ignore')
+        return cleaned
+
+    def extract_tokens(self, cleaned):
+        """
+        Converts cleaned text to a vocabulary.
+        Returns dictionary.
+        """
+        text = self.tokenizer.tokenize(cleaned)
+        #Limiting words to have size > 2 and < 20 and not numbers
+        words = [w.lower() for w in text if len(w) > 2 and len(w) < 20 and not w.isdigit()]
+        #Stopwords removal
+        words = [word for word in words if word not in self.stopwords]
+        return words
+
+def write_to_file(output, filename):
+    """ Writes into an output file. """
+    with open(filename, "w") as f:
+        f.write(output)
+
+def compute_file_size(files):
+    """Computes the file size in MB"""
+    mb = 1024*1024.0
+    if type(files) is list: #for multiple files
+        return sum([os.path.getsize(filename) for filename in files]) / mb
+    else: #for single file
+        return os.path.getsize(files) / mb
+
+def file_id(doc):
+    return os.path.basename(doc)[-8:-5].lstrip('0')
+
+@profile
+def main(input_path='../input_files/', output_path='out_files', number_of_files=503, query_string=""):
+    list_of_files = []
+    for (dirpath, dirnames, filenames) in os.walk(input_path):
+        for filename in filenames:
+            list_of_files.append(os.sep.join([dirpath, filename])) #List of complete files
+    random.shuffle(list_of_files) #Randomizing the order of files in the list
+    #print compute_file_size(list_of_files[:number_of_files])
+
+    #Checks and adds trailing slash to output directory
+    if not output_path.endswith('/'): output_path = output_path + '/'
+    if not os.path.exists(output_path): os.makedirs(output_path)
+
+    cwts = Calcwts()
+    tkr = Tokenization()
+    for i in range(0, number_of_files): # Slicing the list of files as per Number of files
+        filename = list_of_files[i]
+        cleaned = tkr.clean_html(filename) #cleaning raw html string
+        tokens = tkr.extract_tokens(cleaned) #tokenization
+        token_frequency = cwts.freq(tokens) #computing frequency of extracted tokens
+        for token in tokens:
+            cwts.model[filename][token] = token_frequency[token]
+
+    vocabulary = []
+    for docs in cwts.model.values():
+        vocabulary.extend(docs.keys()) #complete vocabulary with repetitions; for computing document frequency in idf
+    cwts.inverse_doc_freq = cwts.freq(vocabulary)
+
+    cwts.total_docs = len(cwts.model.keys())
+    for d in cwts.model.keys():
+        cwts.avg_doclen += sum(cwts.model[d].values())
+    cwts.avg_doclen /= float(cwts.total_docs) #average document length
+
+    #import ipdb; ipdb.set_trace()
+    inv_index = Index(output_path)
+    for i in range(0, number_of_files):
+        doc = list_of_files[i]
+        doclen = sum(cwts.model[doc].values()) #length of document
+        for word in cwts.model[doc].keys():
+            inv_index.weights[word][doc] = cwts.tf_idf(word, doc, doclen) #Creating the [term][document] weight dictionary
+
+    retriever = Retrieval(cwts.total_docs, len(set(vocabulary))) #Initializing term document matrix
+    retriever.vocabulary_index = {key: value for key, value in zip(set(vocabulary), range(len(set(vocabulary))))}
+    retriever.similarity_scores = {key: None for key in range(cwts.total_docs)}
+
+
+    for term in inv_index.weights.keys():
+        for doc in inv_index.weights[term].keys():
+            document = (eval(file_id(doc)) - 1) % cwts.total_docs
+            #TODO: reduce precision of floating point to 8 decimal points
+            retriever.tdmatrix[retriever.vocabulary_index[term], document] = inv_index.weights[term][doc]
+
+    #import ipdb; ipdb.set_trace()
+    #query_string = "international affairs"
+    retriever.process_query(query_string)
+    retriever.dot_product()
+    print retriever.similarity_scores
+
+# query_string =["international", "affairs"]
+# input_path = "../input_files"
+# main(query_string=query_string)
+
+if __name__ == "__main__":
+    # try:
+    input_path = sys.argv[1] #Path to input directory
+    output_path = sys.argv[2] #Path to output directory
+    #     if len(sys.argv) == 3:
+    #         main(input_path, output_path)
+        # else:
+    number_of_files = eval(sys.argv[3]) #Number of files
+    query_string = sys.argv[4:]
+    print query_string
+    main(input_path, output_path, number_of_files, query_string)
+    # except Exception:
+    #     print "Missing Parameters"
+    #     print "Usage: ./index input-directory output-directory <n>"
+    #     print "<n> (Optional parameter, Default value: 100) - Number of files in the collection, n = [1, 503]"
+    #     sys.exit(1)
