@@ -31,26 +31,21 @@ class Similarity:
     """Similarity Matrix for Document Clustering"""
     def __init__(self):
         self.sim_matrix = collections.defaultdict(dict) #document : document : cosine similarity
-        self.max_sim = [] #similarity scores as tuples (score, d1, d2)
         self.active_clusters = {} #keeps track of active clusters
 
-    def similarity_heap(self, d1):
-        """ Adds the maximum similarity score corresponding to d1 to max_sim """
-        flag = 0
-        #import ipdb; ipdb.set_trace()
-        for d2 in self.sim_matrix[d1].keys():
-            maximum = (flag, d1, d2)
-            if d1 != d2: #ignoring similarity with itself
-                if self.active_clusters[d1] + self.active_clusters[d2] == 2: #checking if cluster is active
-                    score = self.sim_matrix[d1][d2]
-                    if score > flag and score != 1:
-                        flag = score
-                        maximum = (flag, d1, d2)
-        self.max_sim.append(maximum)
-
     def get_high_sim(self):
-        """ Returns tuple (score, d1, d2) with largest similarity score """
-        return max(self.max_sim)
+        """ Returns the maximum similarity score as a tuple (score, d1, d2) """
+        flag = -1
+        maximum = (flag, 0, 0)
+        for d1 in self.sim_matrix.keys():
+            for d2 in self.sim_matrix[d1].keys():
+                if d1 != d2: #ignoring similarity with itself
+                    if self.active_clusters[d1] + self.active_clusters[d2] == 2: #checking if cluster is active
+                        score = self.sim_matrix[d1][d2]
+                        if score > flag and score != 1:
+                            flag = score
+                            maximum = (flag, d1, d2)
+        return maximum
 
     def group_link_avg(self):
         """Recompute distances"""
@@ -159,7 +154,6 @@ def main(args):
     for (dirpath, dirnames, filenames) in os.walk(input_path):
         for filename in filenames:
             list_of_files.append(os.sep.join([dirpath, filename])) #List of complete files
-    random.shuffle(list_of_files) #Randomizing the order of files in the list
 
     print "Phase 1: Starting tokenization"
     cwts = Calcwts()
@@ -205,13 +199,8 @@ def main(args):
             SimObj.sim_matrix[doc1][doc2] = inv_index.product(doc1, doc2) / (denominator_doc1 * inv_index.cosine_denominator(doc2))
         SimObj.active_clusters[doc1] = 1
 
-    import ipdb; ipdb.set_trace()
     print "Clustering Documents"
     A = [] #assembles clustering as sequence of merges
-
-    for i in xrange(0, number_of_files):
-        doc1 = list_of_files[i]
-        SimObj.similarity_heap(doc1)
     
     print SimObj.get_high_sim()    
     
@@ -223,8 +212,8 @@ def main(args):
     #     recalculate similiarties
     #     deactivate other cluster
     # #import ipdb; ipdb.set_trace()
-    #Clustering - first iteration
-    #for i 
+    # Clustering - first iteration
+    # for i 
 
 if __name__ == "__main__":
     arguments = docopt(__doc__, version='Cluster 1.0')
