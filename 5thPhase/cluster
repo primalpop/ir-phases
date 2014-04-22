@@ -32,20 +32,21 @@ class Similarity:
     def __init__(self):
         self.sim_matrix = collections.defaultdict(dict) #document : document : cosine similarity
         self.max_sim = [] #similarity scores as tuples (score, d1, d2)
-        self.active_clusters = [] #keeps track of active def
+        self.active_clusters = {} #keeps track of active clusters
 
-    def similarity_heap(self):
-        """ Builds a list of similarity scores """
-        for d1 in self.sim_matrix.keys():
-            flag = 0
-            for d2 in self.sim_matrix[d1].keys():
-                if d1 != d2: #ignoring similarity with itself
-                    if self.active_clusters[d1] + self.active_clusters[d2] == 2: #checking if cluster is active
-                        score = self.sim_matrix[d1][d2]
-                        if score > flag and score != 1:
-                            maximum = (score, d1, d2)
-                            flag = score
-            self.max_sim.append(maximum)
+    def similarity_heap(self, d1):
+        """ Adds the maximum similarity score corresponding to d1 to max_sim """
+        flag = 0
+        #import ipdb; ipdb.set_trace()
+        for d2 in self.sim_matrix[d1].keys():
+            maximum = (flag, d1, d2)
+            if d1 != d2: #ignoring similarity with itself
+                if self.active_clusters[d1] + self.active_clusters[d2] == 2: #checking if cluster is active
+                    score = self.sim_matrix[d1][d2]
+                    if score > flag and score != 1:
+                        flag = score
+                        maximum = (flag, d1, d2)
+        self.max_sim.append(maximum)
 
     def get_high_sim(self):
         """ Returns tuple (score, d1, d2) with largest similarity score """
@@ -145,19 +146,6 @@ class Tokenization:
         words = [word for word in words if word not in self.stopwords]
         return words
 
-def write_to_file(output, filename):
-    """ Writes into an output file. """
-    with open(filename, "w") as f:
-        f.write(output)
-
-def compute_file_size(files):
-    """Computes the file size in MB"""
-    mb = 1024*1024.0
-    if type(files) is list: #for multiple files
-        return sum([os.path.getsize(filename) for filename in files]) / mb
-    else: #for single file
-        return os.path.getsize(files) / mb
-
 def file_id(doc):
     return os.path.basename(doc)
 
@@ -217,17 +205,24 @@ def main(args):
             SimObj.sim_matrix[doc1][doc2] = inv_index.product(doc1, doc2) / (denominator_doc1 * inv_index.cosine_denominator(doc2))
         SimObj.active_clusters[doc1] = 1
 
+    import ipdb; ipdb.set_trace()
     print "Clustering Documents"
     A = [] #assembles clustering as sequence of merges
-    SimObj.similarity_heap()
-    for k in xrange(0, number_of_files):
-        score, d1, d2 = SimObj.get_high_sim()
-        A.append((d1, d2)) #storing merge
-        for j in range(0, number_of_files):
 
-        recalculate similiarties
-        deactivate other cluster
-    #import ipdb; ipdb.set_trace()
+    for i in xrange(0, number_of_files):
+        doc1 = list_of_files[i]
+        SimObj.similarity_heap(doc1)
+    
+    print SimObj.get_high_sim()    
+    
+    # for k in xrange(0, number_of_files):
+    #     score, d1, d2 = SimObj.get_high_sim()
+    #     A.append((d1, d2)) #storing merge
+    #     for j in range(0, number_of_files):
+
+    #     recalculate similiarties
+    #     deactivate other cluster
+    # #import ipdb; ipdb.set_trace()
     #Clustering - first iteration
     #for i 
 
