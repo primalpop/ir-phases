@@ -32,6 +32,14 @@ class Similarity:
     def __init__(self):
         self.sim_matrix = collections.defaultdict(dict) #document : document : cosine similarity
         self.active_clusters = {} #keeps track of active clusters
+        self.cluster_info = {}
+
+    def documents(element):
+        """If parameter is an integer, it is a cluster and document otherwise."""
+        if isinstance(element, basestring):
+            return list(element)
+        else:
+            return self.cluster_info[element]
 
     def get_high_sim(self):
         """ Returns the maximum similarity score as a tuple (score, d1, d2) """
@@ -40,21 +48,20 @@ class Similarity:
         for d1 in self.sim_matrix.keys():
             for d2 in self.sim_matrix[d1].keys():
                 if d1 != d2: #ignoring similarity with itself
-                    if self.active_clusters[d1] + self.active_clusters[d2] == 2: #checking if cluster is active
+                    if self.active_clusters[d1] != -1 and self.active_clusters[d2] != -1: #checking if cluster is active
                         score = self.sim_matrix[d1][d2]
                         if score > flag and score != 1:
                             flag = score
                             maximum = (flag, d1, d2)
         return maximum
 
-    def group_link_avg(self):
-        """Recompute distances"""
-        pass
-
-    def update_clusters():
-        """Make it N-1 clusters"""
-        pass
-
+    def group_link_avg(self, new_cluster, other_cluster):
+        """Recompute distances for the similarity matrix based on the new cluster"""
+        nc_num = self.active_clusters[new_cluster]
+        oc_num = self.active_clusters[other_cluster]
+        before_avg = sum (self.sim_matrix[x][y] for x in self.cluster_info[new_cluster] for y in self.cluster_info[other_cluster])
+        avg = before_avg / (nc_num * oc_num)
+        return avg
 
 
 class Index:
@@ -144,6 +151,9 @@ class Tokenization:
 def file_id(doc):
     return os.path.basename(doc)
 
+
+
+
 def main(args):
     input_path= args['<files>']
     number_of_files = 503
@@ -194,27 +204,25 @@ def main(args):
     for i in range(0, number_of_files):
         doc1 = list_of_files[i]
         denominator_doc1 = inv_index.cosine_denominator(doc1)
-        for j in range(i, number_of_files):
+        for j in range(i, number_of_files): #making it upper triangular
             doc2 = list_of_files[j]
             SimObj.sim_matrix[doc1][doc2] = inv_index.product(doc1, doc2) / (denominator_doc1 * inv_index.cosine_denominator(doc2))
         SimObj.active_clusters[doc1] = 1
+        SimObj.cluster_info[doc1] = doc1
 
     print "Clustering Documents"
     A = [] #assembles clustering as sequence of merges
     
-    print SimObj.get_high_sim()    
-    
-    # for k in xrange(0, number_of_files):
-    #     score, d1, d2 = SimObj.get_high_sim()
-    #     A.append((d1, d2)) #storing merge
-    #     for j in range(0, number_of_files):
-
-    #     recalculate similiarties
-    #     deactivate other cluster
-    # #import ipdb; ipdb.set_trace()
-    # Clustering - first iteration
-    # for i 
-
+    new_cluster = number_of_files + 1 #cluster number
+    for k in xrange(0, number_of_files): #TODO: verify the number of iterations
+        score, c1, c2 = SimObj.get_high_sim() # most similar pair of clusters
+        A.append((c1, c2)) #storing merge sequence
+        SimObj.cluster_info[new_cluster] = Similarity.documents(c1) + Similarity.documents(c2)
+        SimObj.active_clusters[new_cluster] = len(SimObj.cluster_info[new_cluster])       
+        for j in range(0, number_of_files):
+            SimObj.sim_matrix[new_cluster][j] = Similarity.average_link(new_cluster, j) 
+        SimObj.active_clusters[c1], SimObj.active_clusters[c2] = -1, -1
+     
 if __name__ == "__main__":
     arguments = docopt(__doc__, version='Cluster 1.0')
     main(arguments)
