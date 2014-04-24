@@ -34,10 +34,10 @@ class Similarity:
         self.active_clusters = {} #keeps track of active clusters
         self.cluster_info = {}
 
-    def documents(element):
+    def documents(self, element):
         """If parameter is an integer, it is a cluster and document otherwise."""
         if isinstance(element, basestring):
-            return list(element)
+            return [(element)]
         else:
             return self.cluster_info[element]
 
@@ -55,17 +55,31 @@ class Similarity:
                             maximum = (flag, d1, d2)
         return maximum
 
+    def number_of_active_clusters(self):
+        """Returns the number of active clusters"""
+        return len([i for i, e in enumerate(self.active_clusters.values()) if e != -1])
+
     def group_link_avg(self, new_cluster, other_cluster):
         """Recompute distances for the similarity matrix based on the new cluster"""
         nc_num = self.active_clusters[new_cluster]
         oc_num = self.active_clusters[other_cluster]
-        before_avg = sum (self.sim_matrix[x][y] for x in self.cluster_info[new_cluster] for y in self.cluster_info[other_cluster])
+        if isinstance(other_cluster, basestring):
+            ocluster = [(other_cluster)]
+        else:
+            ocluster = self.cluster_info[other_cluster]
+        before_avg = 0 
+        for y in ocluster:
+            for x in self.cluster_info[new_cluster]:
+                if self.sim_matrix[y].has_key(x):
+                    before_avg += self.sim_matrix[y][x]
+                else:
+                    before_avg += self.sim_matrix[x][y]
         avg = before_avg / (nc_num * oc_num)
         return avg
 
 
 class Index:
-    """Variables for building index"""
+    """Variables for building Term Document Matrix"""
     def __init__(self):
         self.weights = collections.defaultdict(dict) #term : document : normalized term weight
 
@@ -148,11 +162,10 @@ class Tokenization:
         words = [word for word in words if word not in self.stopwords]
         return words
 
-def file_id(doc):
-    return os.path.basename(doc)
-
-
-
+def write_to_file(output, filename):
+    """ Writes into an output file. """
+    with open(filename, "w") as f:
+        f.write(output)
 
 def main(args):
     input_path= args['<files>']
@@ -206,7 +219,8 @@ def main(args):
         denominator_doc1 = inv_index.cosine_denominator(doc1)
         for j in range(i, number_of_files): #making it upper triangular
             doc2 = list_of_files[j]
-            SimObj.sim_matrix[doc1][doc2] = inv_index.product(doc1, doc2) / (denominator_doc1 * inv_index.cosine_denominator(doc2))
+            denominator_doc2 = inv_index.cosine_denominator(doc2)
+            SimObj.sim_matrix[doc1][doc2] = inv_index.product(doc1, doc2) / (denominator_doc1 * denominator_doc2)
         SimObj.active_clusters[doc1] = 1
         SimObj.cluster_info[doc1] = doc1
 
@@ -214,14 +228,22 @@ def main(args):
     A = [] #assembles clustering as sequence of merges
     
     new_cluster = number_of_files + 1 #cluster number
-    for k in xrange(0, number_of_files): #TODO: verify the number of iterations
+    output = "Document Clustering \n"
+    while SimObj.number_of_active_clusters() > 1: # While there exists more than one cluster
         score, c1, c2 = SimObj.get_high_sim() # most similar pair of clusters
+        if score < 0.4: # break when no two clusters (or documents) have similarity greater than 0.4
+            break
+        output +=  "Merging %s and %s into %s \n" %(c1, c2, new_cluster)
         A.append((c1, c2)) #storing merge sequence
-        SimObj.cluster_info[new_cluster] = Similarity.documents(c1) + Similarity.documents(c2)
-        SimObj.active_clusters[new_cluster] = len(SimObj.cluster_info[new_cluster])       
-        for j in range(0, number_of_files):
-            SimObj.sim_matrix[new_cluster][j] = Similarity.average_link(new_cluster, j) 
+        SimObj.cluster_info[new_cluster] = SimObj.documents(c1) + SimObj.documents(c2)
+        SimObj.active_clusters[new_cluster] = len(SimObj.cluster_info[new_cluster])    
+        for ocluster, active in SimObj.active_clusters.items(): #only for active clusters
+            if active != -1:
+                SimObj.sim_matrix[new_cluster][ocluster] = SimObj.group_link_avg(new_cluster, ocluster) 
         SimObj.active_clusters[c1], SimObj.active_clusters[c2] = -1, -1
+        new_cluster += 1
+    write_to_file(output, "cluster.txt")
+    print "Document Clustering completed. Output written to cluster.txt"
      
 if __name__ == "__main__":
     arguments = docopt(__doc__, version='Cluster 1.0')
