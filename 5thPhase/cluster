@@ -46,6 +46,33 @@ class Similarity:
                             maximum = (flag, d1, d2)
         return maximum
 
+    def get_closest_to_centroid(self, centroid):
+        """ Returns the document closest to the corpus centroid """
+        flag = -1
+        maximum = (flag, 0, 0)
+        for d2 in self.sim_matrix[centroid].keys():
+            if centroid != d2: #ignoring similarity with itself
+                if isinstance(d2, basestring): #checking if it's a document
+                    score = self.sim_matrix[centroid][d2]
+                    if score > flag and score != 1:
+                        flag = score
+                        maximum = (flag, centroid, d2)
+        return maximum
+
+    def get_lowest_sim(self):
+        """ Returns the minimum similarity score in the corpus"""
+        flag = 1
+        maximum = (flag, 0, 0)
+        for d1 in self.sim_matrix.keys():
+            for d2 in self.sim_matrix[d1].keys():
+                if d1 != d2: #ignoring similarity with itself
+                    if self.active_clusters[d1] != -1 and self.active_clusters[d2] != -1: #checking if cluster is active
+                        score = self.sim_matrix[d1][d2]
+                        if score < flag:
+                            flag = score
+                            minimum = (flag, d1, d2)
+        return minimum
+
     def number_of_active_clusters(self):
         """Returns the number of active clusters"""
         return len([i for i, e in enumerate(self.active_clusters.values()) if e != -1])
@@ -65,7 +92,7 @@ class Similarity:
                     before_avg += self.sim_matrix[y][x]
                 else:
                     before_avg += self.sim_matrix[x][y]
-        avg = before_avg / (nc_num * oc_num)
+        avg = before_avg / (nc_num + oc_num)
         return avg
 
 
@@ -224,7 +251,7 @@ def main(args):
         score, c1, c2 = SimObj.get_high_sim() # most similar pair of clusters
         if score < 0.4: # break when no two clusters (or documents) have similarity greater than 0.4
             break
-        output +=  "Merging %s and %s into %s \n" %(c1, c2, new_cluster)
+        output +=  " %s + %s ---> %s \n" %(c1, c2, new_cluster)
         A.append((c1, c2)) #storing merge sequence
         SimObj.cluster_info[new_cluster] = SimObj.documents(c1) + SimObj.documents(c2)
         SimObj.active_clusters[new_cluster] = len(SimObj.cluster_info[new_cluster])
