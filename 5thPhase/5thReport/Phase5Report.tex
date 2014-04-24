@@ -6,6 +6,8 @@
 \usepackage{amsmath,amsfonts,amsthm} % Math packages
 
 \usepackage{graphicx,subfigure}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
 %\usepackage[pdftex]{graphicx}	
 \usepackage{url}
 \usepackage{soul,color}
@@ -72,7 +74,7 @@ The commandline parameter is path to the input files directory. You need to inst
 
 \paragraph{Output}
 
-The output is written to the file \textit{cluster.txt}. For every merge between clusters or documents, a line was written into the file as, \textit{Merging cluster1 and cluster2 into new_cluster}. Only the first 100 lines of output has been added to cluster.txt as per problem requirement.
+The output is written to the file \textit{cluster.txt}. For every merge between clusters or documents, a line was written into the file as, \textit{Merging cluster1 and cluster2 into new\_cluster}. Only the first 100 lines of output has been added to cluster.txt as per problem requirement.
 
 \section{Implementation}
 
@@ -82,46 +84,53 @@ I extended the program from previous phases for implementing document clustering
 
 I used the term document matrix which was built in earlier phases for constructing the similarity matrix. Term document matrix is a nested dictionary, with the first level indexed by documents and the inner level by terms. Similarity matrix is also a nested dictionary, indexed by pair of documents. Additionally, since a similarity matrix is upper triangular, only one entry was made for a pair of documents. A new row is added to the similarity after formation of cluster, which contains the similarity score of that cluster with all other existing clusters.
 
-I used two other dictionaries to keep track of active clusters (after every step of merging, the two clusters which were merged are deactivated) and number of documents in each cluster.
+I used two other dictionaries to keep track of active clusters (after every step of merging, the two clusters which were merged together are deactivated) and number of documents in each cluster (cluster\_info).
 
 
 \subsection{Similarity Matrix}
 
-The Similarity matrix was constructed using the cosine similarity score between pair documents. The formuala for cosine similarity is as follows
+The Similarity matrix was constructed using the cosine similarity score between pair documents. The formula for computing cosine similarity is as follows
 
 \begin{align} 
 	\begin{split}
-	tf-idf_{i, j} 	&= f_{i,j} * log\frac{N}{n_{i}}  
+	cosinesimilarity(d_{i}, d_{j}) 	= \frac{dotproduct(d_{i}, d_{j})}{\| \mathbf{d_{i}} \| * \| \mathbf{d_j} \|}
 	\end{split}					
 \end{align}
 
+As noted earlier, a document is perfectly similar to itself, so the entries on the main diagonal are all 1. Similarity is also symmetric, i.e. $sim(i,j) = sim(j,i)$, so the similarity matrix is upper triangular in form. Term-Document matrix is referenced for obtaining the term weights corresponding to terms in each document.
 
-Cosine Similarity on Term Document Matrix
+\subsection{Group Average Link}
 
-\subsection{Group Link Average}
+After forming a new cluster, the Similarity matrix was updated with the scores between the new cluster and existing ones. Group Average Link method was used for computing the similarity score between two clusters or one cluster and another document.
 
-Formula used
+\begin{align} 
+	\begin{split}
+	dist(c_{p}, c_{r}) 	= \frac{\sum\limits_{d_{i} \in c_{p}} \sum\limits_{d_{j} \in c_{r}} cosinesimilarity(d_{i}, d_{j})}{n_{p} + n_{r}}
+	\end{split}					
+\end{align}
+
+The information about documents in a cluster was stored in a dictionary, with the cluster as key and list of documents as value.
 
 \subsection{Document Clustering}
 
-Mention about 0.4
+As the first step in clustering, the similarity matrix was constructed. Additionally, every document was marked as active by setting a flag. Once the similarity matrix was ready, we retrieved the pair of documents with highest similarity. After checking if the similarity score is greater than $0.4$, the two documents were merged together into a new cluster.
 
-Naming Scheme
+The new cluster was assigned a number which is one greater than the number of files (504 in this case). A row corresponding to this new cluster was added to Similarity matrix after computing similarity scores between itself and all other documents using group average link method. After this step, the two documents which were merged are marked as deactivated (by setting their flag to -1). The flag is set for new cluster, marking it as active and also the number of documents in the cluster is stored in the cluster\_info as mentioned before. Similarly the process continues, until there exists two clusters (or documents) which have similarity greater than 0.4.
 
 \section{Evaluation}
 
 \begin{enumerate}
 \item Which pair of HTML documents is the most similar? 
 
-Document 434.html and 435.html are most similar as they were first to be merged into a cluster.
+Documents 434.html and 435.html are most similar as they were first to be merged into a cluster. This was computed using \textit{get\_highest\_sim} method in the program which returns the pair of documents in the similarity matrix with highest score. 
 
 \item Which pair of documents is the most dissimilar?
  
-
+Documents 100.html and 455.html are most dissimilar with a similarity score of 0.0 (the first such occurrence was chosen).
 
 \item Which document is the closest to the corpus centroid?
 
-'../input_files/153.html'
+After clustering the entire set of documents (without the similarity score threshold of 0.4 and computing group average link score for merged documents as well), the minimum among the distance between centroid of the corpus and all documents (not clusters) was chosen as closest to centroid. The document is 333.html.  
 
 \end{enumerate} 
 
@@ -129,11 +138,9 @@ Document 434.html and 435.html are most similar as they were first to be merged 
 
 \begin{thebibliography}{1}
 
-\bibitem{umbc} UMBC link
-
-\bibitem{clus} Stanford link
-
-\bibitem{clus1} UC Davis link
+\bibitem{umbc} Text Classification: http://www.csee.umbc.edu/~nicholas/676/mir2edSlides/slides\_chap08.pdf
+\bibitem{clus} Hierarchical agglomerative clustering: http://nlp.stanford.edu/IR-book/html/htmledition/hierarchical-agglomerative-clustering-1.html
+\bibitem{clus1} Clustering: http://www.cs.ucdavis.edu/~filkov/classes/289a-W03/l6.pdf
 
 \end{thebibliography}
 
