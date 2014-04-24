@@ -80,15 +80,21 @@ I extended the program from previous phases for implementing document clustering
 
 \subsection{Data Structures}
 
-Term Document Matrix
+I used the term document matrix which was built in earlier phases for constructing the similarity matrix. Term document matrix is a nested dictionary, with the first level indexed by documents and the inner level by terms. Similarity matrix is also a nested dictionary, indexed by pair of documents. Additionally, since a similarity matrix is upper triangular, only one entry was made for a pair of documents. A new row is added to the similarity after formation of cluster, which contains the similarity score of that cluster with all other existing clusters.
 
-Similarity Matrix
+I used two other dictionaries to keep track of active clusters (after every step of merging, the two clusters which were merged are deactivated) and number of documents in each cluster.
 
-Active Clusters
-
-Cluster Info
 
 \subsection{Similarity Matrix}
+
+The Similarity matrix was constructed using the cosine similarity score between pair documents. The formuala for cosine similarity is as follows
+
+\begin{align} 
+	\begin{split}
+	tf-idf_{i, j} 	&= f_{i,j} * log\frac{N}{n_{i}}  
+	\end{split}					
+\end{align}
+
 
 Cosine Similarity on Term Document Matrix
 
@@ -100,6 +106,8 @@ Formula used
 
 Mention about 0.4
 
+Naming Scheme
+
 \section{Evaluation}
 
 \begin{enumerate}
@@ -110,7 +118,10 @@ Document 434.html and 435.html are most similar as they were first to be merged 
 \item Which pair of documents is the most dissimilar?
  
 
+
 \item Which document is the closest to the corpus centroid?
+
+'../input_files/153.html'
 
 \end{enumerate} 
 
