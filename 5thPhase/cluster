@@ -7,14 +7,7 @@ Homework 5: http://www.csee.umbc.edu/~nicholas/676/term%20project/hw5.html
 
 Author: Primal Pappachan, primal1@umbc.edu
 
-Usage:
-  cluster <files>
-  cluster -h | --help
-  cluster --version
-
-Options:
-  -h --help     Show this screen.
-  --version     Show version.
+Usage: cluster <files>
 
 """
 
@@ -24,15 +17,13 @@ import collections
 import random, math
 from pprint import pprint
 import operator
-from docopt import docopt
-
 
 class Similarity:
     """Similarity Matrix for Document Clustering"""
     def __init__(self):
         self.sim_matrix = collections.defaultdict(dict) #document : document : cosine similarity
         self.active_clusters = {} #keeps track of active clusters
-        self.cluster_info = {}
+        self.cluster_info = {} # cluster : list of documents which are part of that cluster
 
     def documents(self, element):
         """If parameter is an integer, it is a cluster and document otherwise."""
@@ -67,7 +58,7 @@ class Similarity:
             ocluster = [(other_cluster)]
         else:
             ocluster = self.cluster_info[other_cluster]
-        before_avg = 0 
+        before_avg = 0
         for y in ocluster:
             for x in self.cluster_info[new_cluster]:
                 if self.sim_matrix[y].has_key(x):
@@ -168,9 +159,9 @@ def write_to_file(output, filename):
         f.write(output)
 
 def main(args):
-    input_path= args['<files>']
+    input_path= args
     number_of_files = 503
-        
+
     tkr = Tokenization()
 
     list_of_files = []
@@ -226,7 +217,7 @@ def main(args):
 
     print "Clustering Documents"
     A = [] #assembles clustering as sequence of merges
-    
+
     new_cluster = number_of_files + 1 #cluster number
     output = "Document Clustering \n"
     while SimObj.number_of_active_clusters() > 1: # While there exists more than one cluster
@@ -236,15 +227,18 @@ def main(args):
         output +=  "Merging %s and %s into %s \n" %(c1, c2, new_cluster)
         A.append((c1, c2)) #storing merge sequence
         SimObj.cluster_info[new_cluster] = SimObj.documents(c1) + SimObj.documents(c2)
-        SimObj.active_clusters[new_cluster] = len(SimObj.cluster_info[new_cluster])    
+        SimObj.active_clusters[new_cluster] = len(SimObj.cluster_info[new_cluster])
         for ocluster, active in SimObj.active_clusters.items(): #only for active clusters
             if active != -1:
-                SimObj.sim_matrix[new_cluster][ocluster] = SimObj.group_link_avg(new_cluster, ocluster) 
+                SimObj.sim_matrix[new_cluster][ocluster] = SimObj.group_link_avg(new_cluster, ocluster)
         SimObj.active_clusters[c1], SimObj.active_clusters[c2] = -1, -1
         new_cluster += 1
     write_to_file(output, "cluster.txt")
     print "Document Clustering completed. Output written to cluster.txt"
-     
+
 if __name__ == "__main__":
-    arguments = docopt(__doc__, version='Cluster 1.0')
-    main(arguments)
+    if len(sys.argv) > 1:
+        arguments = sys.argv[1]
+        main(arguments)
+    else:
+        print "Missing path to input file directory \nUsage: ./cluster input_files"
