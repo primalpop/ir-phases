@@ -1,0 +1,130 @@
+\documentclass[paper=a4, fontsize=11pt]{scrartcl}
+\usepackage[T1]{fontenc}
+
+\usepackage[english]{babel}															% English language/hyphenation
+\usepackage[protrusion=true,expansion=true]{microtype}	
+\usepackage{amsmath,amsfonts,amsthm} % Math packages
+
+\usepackage{graphicx,subfigure}
+%\usepackage[pdftex]{graphicx}	
+\usepackage{url}
+\usepackage{soul,color}
+
+%%% Custom sectioning
+\usepackage{sectsty}
+\allsectionsfont{\centering \normalfont\scshape}
+
+
+%%% Custom headers/footers (fancyhdr package)
+\usepackage{fancyhdr}
+\pagestyle{fancyplain}
+\fancyhead{}											% No page header
+\fancyfoot[L]{}											% Empty 
+\fancyfoot[C]{}											% Empty
+\fancyfoot[R]{\thepage}									% Pagenumbering
+\renewcommand{\headrulewidth}{0pt}			% Remove header underlines
+\renewcommand{\footrulewidth}{0pt}				% Remove footer underlines
+\setlength{\headheight}{13.6pt}
+
+
+%%% Equation and float numbering
+\numberwithin{equation}{section}		% Equationnumbering: section.eq#
+\numberwithin{figure}{section}			% Figurenumbering: section.fig#
+\numberwithin{table}{section}				% Tablenumbering: section.tab#
+
+
+%%% Maketitle metadata
+\newcommand{\horrule}[1]{\rule{\linewidth}{#1}} 	% Horizontal rule
+
+\title{
+		%\vspace{-1in} 	
+		\usefont{OT1}{bch}{b}{n}
+		\normalfont \normalsize \textsc{Information Retrieval} \\ [25pt]
+		\horrule{0.5pt} \\[0.4cm]
+		\huge Programming Project - Phase 5 \\
+		\horrule{2pt} \\[0.5cm]
+}
+\author{
+		\normalfont 								\normalsize
+        Primal Pappachan\\[-3pt]		\normalsize
+        primal1@umbc.edu\\[-3pt]		\normalsize
+        \today
+}
+\date{}
+
+
+%%% Begin document
+\begin{document}
+\maketitle
+\section{Introduction}
+In Programming Assignment 5, I have analysed the 504-document HTML corpus by using document clustering. I have used my code from earlier phases of the project for tokenizing, calculating normalized term weights and building a term document matrix. I have used Python to code the entire program. To execute the program from a terminal (after setting right permissions for the file), type 
+
+\begin{verbatim}
+$./cluster files 
+\end{verbatim}
+
+For example
+\begin{verbatim}
+$./cluster ../input_files 
+\end{verbatim}
+
+The commandline parameter is path to the input files directory. You need to install the NLTK to run the program. Please refer to the documentation\footnote{\url{http://www.nltk.org/install.html}} on how to install NLTK.
+
+\paragraph{Output}
+
+The output is written to the file \textit{cluster.txt}. For every merge between clusters or documents, a line was written into the file as, \textit{Merging cluster1 and cluster2 into new_cluster}. Only the first 100 lines of output has been added to cluster.txt as per problem requirement.
+
+\section{Implementation}
+
+I extended the program from previous phases for implementing document clustering. The following sections outlines the data structures and algorithms used in the program.
+
+\subsection{Data Structures}
+
+Term Document Matrix
+
+Similarity Matrix
+
+Active Clusters
+
+Cluster Info
+
+\subsection{Similarity Matrix}
+
+Cosine Similarity on Term Document Matrix
+
+\subsection{Group Link Average}
+
+Formula used
+
+\subsection{Document Clustering}
+
+Mention about 0.4
+
+\section{Evaluation}
+
+\begin{enumerate}
+\item Which pair of HTML documents is the most similar? 
+
+Document 434.html and 435.html are most similar as they were first to be merged into a cluster.
+
+\item Which pair of documents is the most dissimilar?
+ 
+
+\item Which document is the closest to the corpus centroid?
+
+\end{enumerate} 
+
+\clearpage
+
+\begin{thebibliography}{1}
+
+\bibitem{umbc} UMBC link
+
+\bibitem{clus} Stanford link
+
+\bibitem{clus1} UC Davis link
+
+\end{thebibliography}
+
+%%% End document
+\end{document}
