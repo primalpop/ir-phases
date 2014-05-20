@@ -107,7 +107,9 @@ In rest of the paper, we describe in more detail the web crawling aspect of the 
 
 \section{Web Crawling}
 
-\begin{figure} % Inline image example
+As mentioned earlier web crawling is a small program that browses the Web on the behalf of search engine. They are given a starting set of urls (seed / initial urls) whose pages they retrieve from the Web. The crawler also extracts the urls appearing in the retrieved pages and adds it to a queue (to visit urls). The retrieved pages are added to a repository and the crawler goes onto visit urls from the to visit queue. \cite{baeza1999modern} 
+
+\begin{figure}[h] % Inline image example
 \begin{center}
 \includegraphics[width=1\textwidth]{webcrawling.png}
 \end{center}
@@ -116,23 +118,93 @@ In rest of the paper, we describe in more detail the web crawling aspect of the 
 
 \subsection{Crawling Challenges}
 
-As mentioned earlier, the Web is enormous and therefore web crawling comes with its unique set of challenges as outlined by \cite{arasu2001searching}.
+As mentioned earlier, the Web is enormous and changing frequently. Therefore web crawling comes with its unique set of challenges as outlined by \cite{arasu2001searching}.
 
 \begin{enumerate}
 
 \item What pages should the crawler download?
 
+Since the Web is so large, a crawler can only download a small portion of the Internet. It has to carefully select important pages for crawling by prioritizing the urls in to visit queue properly so that portion of the Internet it has visited is significant.
+
 \item How should the crawler refresh pages? 
+
+One of the unique challenges of Information retrieval in the Web is how often the web pages change. Therefore a crawler has to revisit the pages and refresh their contents in the repository so that the local copy of Web maintained by the crawler is not out-of-date with respect to the remote one. In the next section we will be explaining in more detail about challenges involved in maintaining the \textit{freshness} of the collection and techniques to solve them.
 
 \item How to be unobstrusive on the web servers being visited?
 
+When a crawler is working, it consumes resources belonging to other organizations such as disk, CPU resources and network bandwidth. Therefore the crawler should minimize the impact on other web servers so that the administrators of those website would not complain.
+
 \item How to parallize the crawling the process? 
+
+Web crawling is a time consuming process and steps should be taken to reduce this time by running the crawler on multiple machines and parallelizing the downloads of pages. Additionally, these parallel crawlers should be coordinated properly so that they do not interfere with each other's working and does not violate the crawling policy. Coordination can incur communication overhead and therefore limits the number of simultaneous crawlers possible. 
 
 \end{enumerate}
 
+\subsection{Crawler Objective}
+
+According to Coffman et. al \cite{coffman1997optimal}, one of the main objectives of a crawler is to minimize the fraction of time pages remain outdated. This can be split into two different objectives based on two different metrics. 
+
+\begin{itemize}
+\item Keep the average freshness of pages high
+\item Keep the average age of pages low
+\end{itemize}
+
+The cost functions age and freshness are defined as follows by \cite{cho2000synchronizing}.
+
+\begin{figure}[h] % Inline image example
+\begin{center}
+\includegraphics[width=1\textwidth]{freshness.png}
+\end{center}
+\caption{Freshness of a page p at time t}
+\end{figure}
+
+Freshness represents the fraction of up-to-date pages in the repository. When all pages in the local repository are synchronized with that of the remote repository, freshness is 1. On the other hand, age is a measure of how old the downloaded copies of web pages are. These two metrics are related and similar.
+
+\begin{figure}[h] % Inline image example
+\begin{center}
+\includegraphics[width=1\textwidth]{age.png}
+\end{center}
+\caption{Age of a page p at time t}
+\end{figure}
+
 \subsection{Crawler Design Issues}
 
+In their seminal paper in 1999 Cho et. al \cite{cho1999evolution} describes about various crawler design issues and their possible trade offs. They identified two types of crawlers with constrasting features so as to tackle the web crawling challenges earlier mentioned.
+
+The first of these is a periodic crawler and their features are
+
+\begin{itemize}
+\item Batch mode - periodically updates the entire collection in a single crawl
+\item Shadowing - new set of pages are collected and stored in a separate space and replaces the current collection at the end of the crawl
+\item Fixed frequency - revisits all pages at same frequency irrespective of how ofthen they change
+\end{itemize} 
+
+Secondly, we have the incremental crawler with a constrasting set of features with that of a periodic crawler.
+
+\begin{itemize}
+
+\item Steady mode - crawler runs continously and incrementally updates the collection
+\item In place - updates the web pages in place by replacing old version with new version when it is downloaded
+\item Variable frequency - optimizes revisits based on how frequently they change 
+
+\end{itemize}
+
+\begin{table}
+\begin{tabular}{|c|c|c|}
+\hline 
+\textbf{Periodic Crawler} & Easy to implement & High availability \\ 
+\hline 
+\textbf{Incremental Crawler }& High freshness & Minimal load on network and servers \\ 
+\hline
+\end{tabular} 
+\caption{Periodic versus incremental} 
+\end{table}
+
+Architecture of an incremental crawler add the diagram and some explanation
+
 \section{Revisiting policies}
+
+\cite{cho2003effective}
 
 \subsection{Uniform Policy}
 
