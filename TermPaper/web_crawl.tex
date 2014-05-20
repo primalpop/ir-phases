@@ -189,7 +189,9 @@ Secondly, we have the incremental crawler with a constrasting set of features wi
 
 \end{itemize}
 
-\begin{table}
+The advantages of these types of crawlers are outlined in the table below.
+
+\begin{table}[h]
 \begin{tabular}{|c|c|c|}
 \hline 
 \textbf{Periodic Crawler} & Easy to implement & High availability \\ 
@@ -204,21 +206,30 @@ Architecture of an incremental crawler add the diagram and some explanation
 
 \section{Revisiting policies}
 
-\cite{cho2003effective}
+Focusing on the frequency of revisits by a crawler, there are two types of revisiting policies as detailed by \cite{cho2003effective}. The first one called uniform policy is similar to the fixed frequency feature of the periodic crawler. It revisits all pages in the repository with same frequency irrespective of how often these pages change. On the other hand, Proportional policy involves modelling the revisiting policy based on the rate of change of the pages that is visiting frequency is directly proportional to how frequently the pages change. \\
 
-\subsection{Uniform Policy}
-
-\subsection{Proportional Policy}
+In the same work \cite{cho2003estimating}, they went onto prove that uniform policy bests proportional policy in terms of average freshness. The intuitive explanation behind this surprising result is that web crawlers have limited set of resources and have to limit the number of pages they can crawl in a given time. In case of proportional policy, they end up allocating too many resources to very frequently changing pages. Also, as the freshness of fast changing pages lasts for shorter periods than that of lesser frequently changing pages. Therefore, proportional policy gets bottlenecked by the frequently updating pages and ends up having lower freshness than the uniform policy.
 
 \subsection{Optimal Policy}
 
+Based on the earlier results, Cho and Garcia-Molina proposed that the optimal revisiting policy for a web crawler is neither uniform nor proportional. \cite{cho2003estimating} They also suggested that web pages that change too often should be penalized so that they do not bottleneck the crawling process. The access frequencies of the web pages should be varied sub-linearly with rate of change. They went onto propose that the exponential distribution based on Poisson process is a good model for describing page changes. Latter on, Ipeirotis et al. came up with a statistical approach to discover the parameters which affect the rate of change of the page \cite{ipeirotis2005modeling}.
+
 \section{Future work}
 
-\subsection{Proposed}
+From the literature survey, I came across the following future work as proposed by the authors of seminal papers mentioned above. The crawler and the website being crawled upon has to negotiate on a right crawling policy so that the load of servers and network is minimized and crawler can maintain high average freshness. Either uniform or proportional policy does not take into consideration the quality of a web page in their policy. These leads into giving equal priority to all web pages irrespective of their quality of content which can result in suboptimal policy. Additionally both of these policies does not use an adaptive scheme for estimating access frequencies of web pages. Static policies which are determined at the beginning of a web crawl tend to perform poorly as the rate at which web pages changes varies over time and models outlined in their papers fail to capture this behaviour. Parallelization and distributed crawling  was in its infancy stages during this time and requires a lot of work before going mainstream.
 
 \subsection{Current status}
 
+I surveyed the recent work to learn about the frontiers of web crawling. The first work I came across describes about adding a user centric metric to web crawling policy \cite{pandey2005user}. This would in turn maximize the quality of user experience for those who are using the search engine. By basing the crawling policy on usage patterns such as which keywords are searched, their frequency and the results of interest to the users, the web crawler is able to refresh particular page based on its possible impact to user experience. Pandey and Olson went onto study how prioritizing the refreshment of pages based on the number of times the page appears in top K search results for queries, for some constant K \cite{pandey2008crawl}. \\
+
+\cite{olston2008recrawl} characterizes information longevity as a feature of the web pages itself and identifies it as a key factor in crawler effectiveness. They introduce two different policies based on this feature and through simulated and real web experiments show that these policies obtain better freshness at a lower cost. The sitemap protocol mechanism proposed by Google makes the job of a crawler slightly easier as it tells the crawlers about urls on the website and modification date. It helps crawlers to discover about pages and updates which it otherwise would have missed \cite{google2014sitemap}. 
+
 \subsection{What still needs to be done}
+
+
+\section{Motivation}
+
+centipede and class project
 
 \section{Conclusion}
 
