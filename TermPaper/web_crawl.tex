@@ -73,9 +73,7 @@ Keeping web crawl data updated} % Subtitle
 
 \begin{abstract}
 
-Search engines are one of the most used web applications today. Even though it falls under the broad umbrella of Information Retrieval, it has to deal with a unique set of challenges. After introducing the details of how a search engine works, this paper delves into           
-
-Outlines some of the challenges and goes deep into the the topic of refresh policies related to web crawling. Surveys existing techniques to solve the problem and also verifies how much of challenges mentioned in seminal papers were covered and presents new challenges to be tackled in this domain.
+Search engines are one of the most used web applications today. Even though search engines fall under the broad umbrella of Information Retrieval, it has to deal with a unique set of challenges due to enormous size of the web and rate of change of the pages involved. This paper outlines some of these challenges related to the web crawling aspect of search engine and goes into depth about understanding the problem of keeping web crawl data updated. In the future work section, we also summarize the problems put forward by the authors of these seminal papers. Afterwards, we fast forward into the future to see if solutions already exist for some of these problems and try to come up with future work which is relevant today.   
 
 \end{abstract}
 
@@ -204,7 +202,14 @@ The advantages of these types of crawlers are outlined in the table below.
 \caption{Periodic versus incremental} 
 \end{table}
 
-Architecture of an incremental crawler add the diagram and some explanation
+In their same paper Cho and Garcia-Molina describes the architecture for an incremental crawler \cite{cho1999evolution}. An incremental crawler is always running and periodically revisits the pages. This type of crawler should satisfy two goals during this process such as maintaining the freshness of local collection and improving quality of repository by replacing less important pages with more important ones. There are three major modules as shown in the figure below - RankingModule, UpdateModule and CrawlModule, and three different data structures - AllUrls, CollUrls and Collection. The urls in CollUrls (urls that will be in the Collection) are selected by RankingModule which scans through AllUrls and Collection and ranks them based on a refinement metric (for example: PageRank). On the other hand, the UpdateModule maintains the freshness of the Collection by asking CrawlModule to crawl pages in front of CollUrls queue. UpdateModule uses checksum comparison to tell whether the page has changed or not and estimates the change as an exponential process. 
+
+\begin{figure}[h] % Inline image example
+\begin{center}
+\includegraphics[width=1\textwidth]{incremental.png}
+\end{center}
+\caption{Architecture of the Incremental crawler}
+\end{figure}
 
 \section{Revisiting policies}
 
@@ -230,9 +235,13 @@ I surveyed the recent work to learn about the frontiers of web crawling. The fir
 
 Over the last decade, the Web has evolved from a library into a community. Data shared over web pages has become much more personal and time sensitive \cite{cho2010dealing}. This happened due to the evolution of Internet into the inclusion of social networks and blogs. Additionally, with more interaction driven content on the Web, crawlers have to choose between generic user based crawl versus different user profiles based crawl. Even though the scalability and performance have been partially solved by the in house solutions built by large corporations, there is still a need for a general purpose, transparent solution for solving the problem.
 
+\section{Conclusion}
+
+In their seminal paper of 1999, \textit{The Evolution of the Web and Implications for an Incremental Crawler} by Cho and Garcia-Molina, they estimated that 40\% of the pages did not change at all in 4 months. In 2014, with facebook, Twitter and Instagram conquering the Internet this is probably not true any more. Therefore a search engine has to be intelligent enough to cater to the whims of it's billions of users. Additionally, with much of the information walled behind the websites huge corporations and inaccessible to crawlers, search engines fail to provide visibility to all sections of the Internet. Additionally, with the variety of content present on the Web - documents, audio, video, images, location data - it becomes even more challenging to have a single solution for all of them. As more and more information become available on the Web, thanks to smartphones and wearable computing devices and more relations become possible between these pieces of data, thanks to Linked Open Data, web crawling will continue to be an exciting field for years to come.
+
 \section*{Motivation}
 
-Last semester as part of coursework, I got an opportunity to work on Commoncrawl \cite{commoncrawl2012} which is an open source repository of web crawl data. After the project, I was interested in how the crawl data was aggregrated. The Information Retrieval project motivated me to learn about the intracies of a search engine and made me interested in learning about web crawling which is an important aspect of the search engine itself.
+Last semester as part of coursework, I got an opportunity to work on Commoncrawl \cite{commoncrawl2012} which is an open source repository of web crawl data. After the project, I was interested in how web crawling works. The Information Retrieval project also motivated me to learn about the intricacies of a search engine and web crawling is an important aspect of it.
 
 \section*{Appendix}
 
